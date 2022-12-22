@@ -1,0 +1,153 @@
+---
+title: "Choice prediction"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Choice prediction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: ref.bib
+link-citations: yes  
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "img/",
+  fig.align = "center",
+  fig.dim = c(8, 6), 
+  out.width = "75%"
+)
+library("Rprobit")
+```
+For illustration, we revisit the probit model of travelers deciding between two fictional train route alternatives from that is also used in  [model fitting](model_fitting.html). First the model is estimated:
+
+```{r, echo = FALSE}
+require(mlogit)
+data("Train", package = "mlogit")
+Train$choiceid <- 1:nrow(Train)
+Train$price_A <- Train$price_A / 100 * 2.20371
+Train$price_B <- Train$price_B / 100 * 2.20371
+Train$time_A <- Train$time_A / 60
+Train$time_B <- Train$time_B / 60
+
+# estimate a MNL model using mlogit
+Train.ml <- mlogit.data(Train, choice = "choice", shape = "wide",
+                     varying = 4:11, alt.levels = c("A", "B"), sep = "_",
+                     opposite = c("price", "time", "change", "comfort"))
+
+Train.mod <- mlogit(choice ~ price + time + change + comfort | 0, Train.ml, reflevel = "A", R=500)
+
+# set up the probit model
+train_mod <- setup_Rprobit(form = choice ~ price + time + change + comfort | 0 ,  data_raw = Train,  ids = c("id"))
+
+# change scale fixation to price parameter. 
+#train_mod$mod$lthL = 1
+train_mod$mod$HL = matrix(0,3,1)
+train_mod$mod$HL[3,1] = 1
+train_mod$mod$fL = matrix(0,3,1)
+
+#train_mod$mod$lthb = 3
+train_mod$mod$Hb = diag(4)[,-1]
+train_mod$mod$fb = as.matrix(c(-0.06,0,0,0),ncol=1)
+
+# initialise with MNL results
+train_mod$theta <- -c(as.numeric(Train.mod$coefficients[2:4]),1)
+
+train_fit       <- fit_Rprobit(Rprobit_obj = train_mod,init_method = "theta", 
+                               control_nlm = list(approx_method = "SJ",probit = FALSE,hess = 0))
+
+# Summarize the output
+summary(train_fit)
+
+```
+
+## Confusion matrix 
+{Rprobit} provides a `confmat_Rprobit()` method for `Rprobit` objects. 
+The method returns a confusion matrix for the estimation data (optionally a new data set can be provided as an argument), which gives an overview of the 
+in-sample prediction performance:
+ 
+
+```{r, confmat-model-train}
+out <- confmat_Rprobit(train_fit)
+out$conf_mat
+```
+
+This confusion matrix tells us, which choices are predicted correctly (using the alternative with the maximal predicted probability as the prediction). Correlations induced by mixed coefficients are ignored hereby. 
+
+In the example we see that almost 70% of the decisions are estimated correctly. 
+
+```{r, confmat-model-train-pr}
+(pr_corr = sum(diag(out$conf_mat))/sum(out$conf_mat))
+```
+
+The same can be done for the subset of the first ten deciders: 
+
+```{r, confmat-model-train10}
+w <- which(train_fit$data_raw$df[,"id"]<11)
+length(w)
+new_data = train_fit$data_raw$clone()
+new_data$set_df(train_fit$data_raw$df[w,])
+out <- confmat_Rprobit(train_fit,data_new = new_data)
+out$conf_mat
+(pr_corr = sum(diag(out$conf_mat))/sum(out$conf_mat))
+```
+These took a total of 111 choices, of which 70 were predicted correctly using the model. 
+
+## Reproducing the observed choice frequencies
+Often the predictions are not the main point of interest for discrete choice modelling, but the focus lies on the replication of the observed frequencies and evaluating the elasticities of choice probabilities depending on regressor values. 
+
+The predicted choice probabilities can be obtained using the function `predict_Rprobit` which sums the predicted choice probabilities over all observations. It can be evaluated on the estimation sample contained in the `Rprobit` object. Optionally a new data set (either in raw format or transformed can be supplied as an additional argument):
+
+```{r, confmat-model-train-probs}
+(pr <- predict_Rprobit(train_fit))
+```
+The overall choice frequencies are represented nicely (but not perfectly) by the model. 
+
+The same can be done for the subsample of the first 10 deciders: 
+```{r, pred10-model-traina}
+(pr <- predict_Rprobit(train_fit,data_new = new_data))
+```
+The predictions add up to approximately equal frequencies while the first ten deciders lean towards alternative 'A'. 
+
+## Calculate the choice probabilities for all observations
+The function `predict_Rprobit` can be used in order to obtain the choice probabilities for all observations by adding the additional argument `all_pred = TRUE`):
+
+```{r, pred10-model-trainb}
+new_data$set_df(train_fit$data_raw$df[1:10,])
+(pr <- predict_Rprobit(train_fit,data_new = new_data, all_pred = TRUE))
+```
+The eighth prediction was in particular wrong: Here the model predicts choice 'B' while 'A' was chosen. The raw data for this observation reads like this: 
+
+```{r, model-train-covs}
+train_fit$data_raw$df[8,]
+```
+
+The trip option `A` was roughly 20€ cheaper and 30 minutes faster, which by our model outweighs the better comfort class for alternative `B`.
+
+
+## Forecasting choice behavior
+
+The function `predict_Rprobit` has an additional `data_new` argument. Per default, `data_new = NULL`, which results into the in-sample case outlined above. Alternatively, `data_new` can be either
+
+- a raw data set following the conventions for `Rprobit` 
+- or a data set transformed by `setup_Rprobit`
+
+We demonstrate the first case in the following. Assume that a train company wants to anticipate the effect of a price increase on their market share. By our model, increasing the ticket price from 100€ to 110€ (ceteris paribus) draws 7.6\% of the customers to the competitor who does not increase their prices.
+
+```{r, predict-model-train-given-covs-1}
+data_new = data.frame("id" =1, "choiceid" = 1, "choice" = train_fit$data_raw$df[1,"choice"], "price_A" = 100,"price_B" = 100, "time_A" = 2, "time_B" = 2, "change_A"=0, "change_B" = 0, "comfort_A" = 1, "comfort_B"=1, "id_macml"= 1)
+data_new[2,] = data.frame("id" =1, "choiceid" = 1, "choice" = train_fit$data_raw$df[4,"choice"], "price_A" = 110,"price_B" = 100, "time_A" = 2, "time_B" = 2, "change_A"=0, "change_B" = 0, "comfort_A" = 1, "comfort_B"=1, "id_macml"= 1)
+new_data$set_df(data_new)
+predict_Rprobit(train_fit,  data_new = new_data, all_pred = TRUE)
+```
+
+However, offering a better comfort class compensates for the higher price and even results in a gain of 3.4\% market share:
+
+```{r, predict-model-train-given-covs-2}
+data_new = data.frame("id" =1, "choiceid" = 1, "choice" = train_fit$data_raw$df[1,"choice"], "price_A" = 100,"price_B" = 100, "time_A" = 2, "time_B" = 2, "change_A"=0, "change_B" = 0, "comfort_A" = 1, "comfort_B"=1, "id_macml"= 1)
+data_new[2,] = data.frame("id" =1, "choiceid" = 1, "choice" = train_fit$data_raw$df[4,"choice"], "price_A" = 110,"price_B" = 100, "time_A" = 2, "time_B" = 2, "change_A"=0, "change_B" = 0, "comfort_A" = 0, "comfort_B"=1, "id_macml"= 1)
+new_data$set_df(data_new)
+predict_Rprobit(train_fit,  data_new = new_data, all_pred = TRUE)
+```
+

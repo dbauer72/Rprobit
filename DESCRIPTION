@@ -1,0 +1,50 @@
+Package: Rprobit
+Type: Package
+Title: Estimation of Multinomial Probit Models
+Version: 0.3.0
+Date: 2022-12-22
+Authors@R: c(
+    person(given = "Dietmar", 
+           family = "Bauer", 
+           role = c("aut", "cre"),
+           email = "dietmar.bauer@uni-bielefeld.de"),
+    person(given = "Manuel", 
+           family = "Batram", 
+           role = "aut",
+           email = ""),
+    person(given = "Sebastian", 
+           family = "B\U00FCscher", 
+           role = "aut",
+           email = "sebastian.buescher@uni-bielefeld.de"),
+    person(given = "Lennart",
+           family = "Oelschl\U00E4ger",
+           role = "aut",
+           email = "lennart.oelschlaeger@uni-bielefeld.de")
+    )
+Description: Estimation of multinomial probit models based 
+    on panel data. It uses the full likelihood as well as the MaCML approach. 
+    The multinomial Gaussian CDF is approximated using the Solow-Joe, Mendell-Elston or the TVBS 
+    method of Chandra Bhat. 
+License: GPL-3
+Encoding: UTF-8
+Imports:
+    matrixcalc,
+    Rcpp,
+    parallel,
+    foreach,
+    doSNOW, 
+    R6
+LinkingTo:
+    Rcpp,
+    RcppEigen
+Depends: R (>= 3.5.0)
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Suggests: 
+    rmarkdown,
+    knitr,
+    mlogit,
+    AER,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3

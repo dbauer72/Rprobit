@@ -1,0 +1,113 @@
+---
+title: "Model Fitting"
+output: rmarkdown::html_vignette
+author: Dietmar Bauer, Manuel Batram, Sebastian Büscher, Lennart Oelschläger
+date: '`r Sys.Date()`'
+vignette: >
+  %\VignetteIndexEntry{Model Fitting}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: ref.bib
+link-citations: yes
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(Rprobit)
+```
+
+**Rprobit** implements a number of different estimation procedures based on the minimization of a number of different criterion functions:
+
+1. The full probit negative log likelihood
+2. Different versions of composite marginal likelihood (CML)
+
+In all cases analytic approximations of the Gaussian CDF, which is used extensively in all criterion functions, are used. The package implements the Solow-Joe (SJ,@SJ) approach, Mendel-Elston (ME, @ME) and the TVBS method of Chandra Bhat [@TVBS]. The approximations 
+reduce the numerical load as compared to the usual evaluation of the Gaussian CDF. For recent results on the properties of the estimates using different approximations see [@BATRAM2019]. 
+
+The full probit likelihood evaluates the choice probabilities for all choice occasions of a decider jointly. 
+If no mixed coefficients are present then the joint probability is the product of the marginal probabilities and the CML approaches and the full likelihood are identical (for appropriate weighting in the case of unbalanced panels).
+
+Mixed coefficients, however,  introduce correlation between the choices such that the evaluation of the joint probability requires an evaluation of a potentially high dimensional normally distributed random variable. Numerically this is costly. 
+
+The CML alleviates these problems by replacing the full likelihood with easier to calculate criterion functions, see [@varin:2005, @varin:2006]. The most often used form is the so called pairwise likelihood which is based on representing pairs of choices in the criterion function. When picking one pair of observations from each decider leads to a criterion function with the usual properties for the reduced data set. As this is so for every choice of the pair, the same holds for a sum of such pairwise likelihoods. 
+
+## Types of CML 
+Using pairwise CMLs leads to a criterion function that trades off numerical load with statistical efficiency. The pairwise probabilities are faster to calculate, but there is no guarantee that the CML based approach achieves the Cramer Rao lower bound. In the literature it is shown using simulations that in some cases the price in terms of asymptotic variance is small while the computational gain is large (cf. @bhat2011simulation). 
+
+Depending on which pairs are chosen, the tradeoff between numerical speed and variance is different. The standard choices are:
+
+1. `cml_pairwise_type=0`: full pairwise, includes all pairs of choices
+2. `cml_pairwise_type=1`: adjacent pairwise looped. This uses all adjacent pairs plus the pair of the first and the last choice. This structure is aimed at cyclical situations such as surveys over weekdays.
+3.  `cml_pairwise_type=2`: adjacent pairwise.
+
+## Optimization Parameters
+The optimization uses the R function `nlm`for the optimization. The parameters of this function can be set using the `control_nlm`  slot of the  `control`  slot of the `Rprobit_obj`  object. It can be supplied as an argument to `fit_Rprobit`. The following elements are used within {Rprobit} (see `nlm` for the definition): 
+
+- typsize 
+- fscale, 
+- print.level 
+- ndigit, 
+- gradtol, 
+- stepmax, 
+- steptol, 
+- iterlim, 
+- check.analyticals
+    
+## Initial Estimates                   
+The last necessary input to `fit_Rprobit` consists in the method to initialize the optimization. Three methods are implemented:
+
+1. `random` Here one parameter vector is chosen from a standard normal distribution independent across components
+2. `theta` This is useful for simulated data sets where the true underlying parameter vector is known. The vector is taken from the `theta_0` slot of the `Rprobit_obj` object
+3. 'subset` This uses a random initialization followed by optimization on randomly chosen 10% of the data. 
+
+## Example 
+The Train data set has been converted into a `Rprobit_obj` structure above. Fitting can be achieved using the function `fit_Rprobit`. 
+The output from the `setup_Rprobit` function is fed into `fit_Rprobit` using the parameters estimated using {mlogit} in the MNL setting as starting points. For this to make sense the scaling is changed such that the price coefficient is fixed to a value similar to the MNL estimate. This requires the adjustment of the `mod` object. 
+
+The options for `control_nlm` specify that the SJ approximation shall be used with the CML criterion function (using the default full pairwise specification). The Hessian shall not be calculated analytically. 
+
+```{r, fit_Rprobit}
+require(mlogit)
+data("Train", package = "mlogit")
+Train$choiceid <- 1:nrow(Train)
+Train$price_A <- Train$price_A / 100 * 2.20371
+Train$price_B <- Train$price_B / 100 * 2.20371
+Train$time_A <- Train$time_A / 60
+Train$time_B <- Train$time_B / 60
+
+# estimate a MNL model using mlogit
+Train.ml <- mlogit.data(Train, choice = "choice", shape = "wide",
+                     varying = 4:11, alt.levels = c("A", "B"), sep = "_",
+                     opposite = c("price", "time", "change", "comfort"))
+
+Train.mod <- mlogit(choice ~ price + time + change + comfort | 0, Train.ml, reflevel = "A", R=500)
+
+# set up the probit model
+train_mod <- setup_Rprobit(form = choice ~ price + time + change + comfort | 0 ,  data_raw = Train,  ids = c("id"))
+
+# change scale fixation to price parameter. 
+#train_mod$mod$lthL = 1
+train_mod$mod$HL = matrix(0,3,1)
+train_mod$mod$HL[3,1] = 1
+train_mod$mod$fL = matrix(0,3,1)
+
+#train_mod$mod$lthb = 3
+train_mod$mod$Hb = diag(4)[,-1]
+train_mod$mod$fb = as.matrix(c(-0.06,0,0,0),ncol=1)
+
+# initialise with MNL results
+train_mod$theta <- -c(as.numeric(Train.mod$coefficients[2:4]),1)
+
+train_fit       <- fit_Rprobit(Rprobit_obj = train_mod,init_method = "theta", 
+                               control_nlm = list(approx_method = "SJ",probit = FALSE,hess = 0), cml_pair_type = 0)
+summary(train_fit)
+```
+
+
+## References

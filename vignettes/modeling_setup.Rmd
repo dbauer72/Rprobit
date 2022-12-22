@@ -1,0 +1,204 @@
+---
+title: "Modeling Setup"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Modeling Setup}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+bibliography: ref.bib
+link-citations: yes
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "img/",
+  fig.align = "center",
+  fig.dim = c(8, 6), 
+  out.width = "75%"
+)
+library("Rprobit")
+```
+
+This vignette explains how the model can be set up and how the data is
+included. We use the Train data set from the {mlogit} package
+[@Croissant:2020] for illustration.The data structure is analogous to
+the {RprobitB} package.
+
+## Requirements to choice data
+
+**Rprobit** helps in modeling the choice of individual deciders of one
+alternative from a finite set of choice alternatives. This choice set
+has to fulfill three properties [@Train:2009]: Choices need to be
+
+1.  mutually exclusive (one can choose one and only one alternative that
+    are all different),
+
+2.  exhaustive (the alternatives do not leave other options open),
+
+3.  and finitely many.
+
+Every decider may take one or repeated choices (called choice
+occasions). The data set thus contains information on
+
+1.  an identifier for each decider (and optionally for each choice
+    situation),
+
+2.  the choices,
+
+3.  alternative and decider specific covariates.
+
+Additionally, {Rprobit} asks the following formal requirements:
+
+1.  The data set **must** be in "wide" format, that means each row
+    provides the full information for one choice occasion.[^1]
+
+2.  It **must** contain a column with unique identifiers for each
+    decision maker. Additionally, it **can** contain a column with
+    identifier for each choice situation of each decider. If this
+    information is missing, these identifier are generated automatically
+    by the appearance of the choices in the data set.[^2]
+
+3.  It **can** contain a column with the observed choices. Such a column
+    is required for model fitting but not for prediction.
+
+4.  It **must** contain columns for the values of each alternative
+    specific covariate for each alternative and for each decider
+    specific covariate.
+
+[^1]: The {tidyr} package [contains
+    functionality](https://tidyr.tidyverse.org/articles/pivot.html) that
+    can transform a `data.frame` into this format.
+
+[^2]: The choice situation identifier are irrelevant for model
+    estimation because {RprobitB} does not model correlation over choice
+    occasions. They are useful to identify specific choice occasions
+    later on.
+
+### Example
+
+The Train data set contains 2929 stated choices by 235 Dutch individuals
+deciding between two virtual train trip options based on the price, the
+travel time, the level of comfort, and the number of changes. It
+fulfills the above requirements: Each row represents one choice
+occasion, the columns `id` and `choiceid` identify the deciders and the
+choice occasions, respectively. The column `choice` gives the observed
+choices. Four alternative-specific covariates are available, namely
+`price`, `time`, `change`, and `comfort`. There values are given for
+each alternative.[^3]
+
+[^3]: For alternative specific variables, the alternative names must be
+    added to the covariates via the `_` separator.
+
+```{r, overview-Train-data}
+data("Train", package = "mlogit")
+str(Train)
+```
+
+## The setup function
+
+The central object for {Rprobit} is the `Rprobit_obj` object. It stores
+all information on the data, the specified model and the estimation. In
+the course of using {Rprobit} the object is changed and enhanced with
+features.
+
+The object contains the following fields (not all need to be specified
+at initialization): 
+
+- data: \code{\link{data}} object 
+- data_raw: \code{\link{data_raw_cl}} object: a wide representation of choice data, see
+above. 
+- form: \code{\link{form}} object: model formula 
+- re: vector of strings listing the names of random effects regressors 
+- mod: \code{\link{mod_cl}} object: see model specification 
+- vars: vector of strings of variable names 
+- alt_names: vector of strings of names of choice alternatives 
+- theta: \code{\link{theta}} object; estimated parameter vector 
+- theta_0: \code{\link{theta}} object; true parameter vector used for data generation in simulated context. 
+- ll real: log likelihood value 
+- H real matrix: Hessian at estimate 
+- J real matrix: variance of score at estimate 
+- grad: real vector; gradient at theta 
+- fit: real; information on the fit
+- vv: real matrix; covariance of estimated parameters 
+- control: list of parameters controlling estimation 
+- info: providing information of estimation.
+
+Many of these fields are supplied by specific functions. There are two
+main ways to generate an `Rprobit_obj` object:
+
+1.  Providing a raw data set and a model.
+2.  Providing a system within a model and the specification of a data
+    set in a simulation setting.
+
+### Setting up the object from data
+
+The `Rprobit_obj` can be initialized using a data set in wide format. In
+addition in this case the model must be supplied in the form of either
+(A) a `mod` object or (B) in form of a formula which can be accompanied
+by
+
+1.  `re` (optional: default is empty): a list providing the names of
+    variables whose coefficients are random
+2.  `corr_re` (optional: default is FALSE): boolean whether correlations
+    of the mixed coefficients should be included in the model
+3.  `error_struc` (optional: default is `"full"`): string indicating the
+    error structure. Choices here are `"diag"`, `"fixed"`(to 0.5 times
+    the identity matrix), `"ident"` (the identity matrix) and `"full"`
+
+In that case `setup_Rprobit` converts the raw data from the wide format
+to the unified format (see model definition) and extracts the number of
+deciders, the number of choice occasions per decider from the data. In
+case of (B) also a `mod` object is generated.
+
+**Example**
+For the Train data set from the package {mlogit} an {Rprobit} object can be set up using a formula implying that only
+type 1 variables are included. 
+
+```{r, setup}
+require(mlogit)
+data("Train", package = "mlogit")
+Train$choiceid <- 1:nrow(Train)
+train_mod <- setup_Rprobit(form = choice ~ price + time + change + comfort | 0 ,  data_raw = Train,  ids = c("id"))
+```
+The resulting output contains the raw data, the transformed data, the formula and the `mod` object listing 235 deciders facing between 5 and 19 decisions between two alternatives. The model contains four parameters in the vector $\beta$ while $\Omega$ does not exist (equals zero, that is) and $\Sigma$ is fixed to a default value with no parameters:
+
+$$
+\Sigma = \left( \begin{array}{cc} 0 & 0 \\ 0 & 1 \end{array} \right)
+$$
+
+which in this case is the `full` specification including fixing the scale. 
+
+All remaining fields of the `Rprobit` object are left unspecified. 
+
+### Simulated data set 
+The second option for `setup_Rprobit` provides access to simulated data. In this case `form` (a model formula containing the specification of all variables including their type), `mod` (defining the model parametrization; see [Objects](objects.html)) and `control` needs to be specified. This object contains all relevant information on the number of deciders and the number of choice occasions faced by them, the number of alternatives and the names of the variables to be generated. All variables are drawn iid standard normally. 
+
+A parameter vector can be specified, else it is drawn from a standard normal distribution. A seed can be provided such that data generation is reproducible. 
+
+**Example**
+
+
+```{r, setup-simul}
+form <- choice ~ V1 + V2 + V3 | 0 
+re <- c("V1","V2")
+
+### Define mod-object 
+mod <- mod_cl$new(
+  Hb   = diag(3)[,-3],
+  fb   = as.matrix(c(0,0,1),col=1),
+  HO   = diag(3),
+  fO   = matrix(0,3,1),
+  HL   = diag(6)[,-c(1,2,3)],
+  fL   = matrix(0,6,1),
+  ordered = FALSE
+)
+control_simul <- list(Tp = sample(1:3,1000,replace=TRUE))
+Rprobit_obj <- setup_Rprobit(form = form, mod = mod, re = re, seed = 1, control = control_simul)
+```
+
+## References

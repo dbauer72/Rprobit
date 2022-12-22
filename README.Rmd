@@ -1,0 +1,85 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-"
+)
+library(Rprobit)
+```
+
+# {Rprobit}: Estimation of Probit Models for discrete choice data (ordered and unordered choices) including the panel case. 
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+{Rprobit} implements the specification and estimation of multinomial probit models that are used in the context of discrete choice data sets. Thereby individuals (named deciders) decide between a finite number of distinct alternatives. Both the alternatives as well as the deciders may be characterized using some regressor variables that influence the choices. 
+
+The package includes code for the cross-sectional case where each decider takes only one choice as well as the panel case wherein deciders face a number of choice occasions. The number of choice occasions may vary among deciders as can the number of alternatives presented to them. 
+
+Multinomial probit models (MNP) represent one version of the random utility type models that assume that deciders take their decisions based on an underlying utility assigned to each alternative. The alternative with the highest utility is then chosen. The utilities are modelled as linear functions of the regressor variables. Individual heterogeneities in preferences can be modelled using the concept if mixing of parameters. {Rprobit} implements Gaussian mixing of the parameters. 
+
+Beside the classical MNP models for unordered choice data wherein each alternative is assigned a separate utility function {Rprobt} can also handle ordered choice situations wherein the alternatives are ordered such as the answers to survey questions or the amount of pieces bought from a product. In this case only one utility function per choice is modelled. 
+
+## Installation
+
+You can install the released version of {RprobitB} from the ZIP file. 
+
+## Documentation
+
+The package is documented in several vignettes.
+
+## Example
+
+We analyze a data set of 2929 stated choices by 235 Dutch individuals deciding between two virtual train trip options based on the price, the travel time, the level of comfort, and the number of changes. The data is saved in the {mlogit} package. We transform the travel time from minutes to hours and the travel price from guilders to euros:
+
+```{r data}
+data("Train", package = "mlogit")
+Train$price_A <- Train$price_A / 100 * 2.20371
+Train$price_B <- Train$price_B / 100 * 2.20371
+Train$time_A <- Train$time_A / 60
+Train$time_B <- Train$time_B / 60
+str(Train)
+```
+
+The following lines fit a probit model that explains the chosen trip alternatives (`choice`) by their `price`, `time`, number of `change`s, and level of `comfort` (the lower this value the higher the comfort). For normalization, the first linear coefficient, the `price`, is fixed to `-1`, which allows to interpret the other coefficients as monetary values:
+
+```{r fit, message = FALSE}
+# estimate a MNL model using mlogit
+Train.ml <- mlogit:::mlogit.data(Train, choice = "choice", shape = "wide",
+                     varying = 4:11, alt.levels = c("A", "B"), sep = "_",
+                     opposite = c("price", "time", "change", "comfort"))
+
+Train.mod <- mlogit:::mlogit(choice ~ price + time + change + comfort | 0, Train.ml, reflevel = "A", R=500)
+
+summary(Train.mod)
+# set up the probit model
+train_mod <- setup_Rprobit(form = choice ~ price + time + change + comfort | 0 ,  data_raw = Train,  ids = c("id"))
+
+# change scale fixation to price parameter. 
+#train_mod$mod$lthL = 1
+train_mod$mod$HL = matrix(0,3,1)
+train_mod$mod$HL[3,1] = 1
+train_mod$mod$fL = matrix(0,3,1)
+
+#train_mod$mod$lthb = 3
+train_mod$mod$Hb = diag(4)[,-1]
+train_mod$mod$fb = as.matrix(c(-0.06,0,0,0),ncol=1)
+
+# initialise with MNL results
+train_mod$theta_0 <- -c(as.numeric(Train.mod$coefficients[2:4]),1)
+
+train_fit <- fit_Rprobit(Rprobit_obj = train_mod,init_method = "theta", 
+                         control_nlm = list(approx_method = "SJ", probit = FALSE, hess = 0))
+```
+
+The estimated effects can be presented via:
+
+```{r coef, fig.align = "center"}
+summary(train_fit)
+```

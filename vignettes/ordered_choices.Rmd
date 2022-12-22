@@ -1,0 +1,117 @@
+---
+title: "Ordered Choices"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Ordered Choices}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+bibliography: ref.bib
+link-citations: yes  
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "img/",
+  fig.align = "center",
+  fig.dim = c(8, 6), 
+  out.width = "75%"
+)
+library("Rprobit")
+```
+
+This vignette describes the usage of **Rprobit** for the estimation of data sets representing choices from an ordered set of responses such as surveys.
+
+## Representation and model definition
+
+The ordering of the alternatives leads to a special structure of the random utility models. While ordered choices could be modeled without imposing the ordering structure, often a different approach is used. A prime example for ordered data concerns the quantity bought of a non-divisible product such as the number of bread rolls bought. In that case the utility value might be linked to the amount bought by assuming that the real line is divided into intervals $C_j , j=1,..,J, \cup_{j =1}^J C_j = {\mathbb R}$ such that if the utility falls into interval $C_j$ then $j$ pieces of the product will be bought.
+
+Here $C_j = [\tau_{j-1},\tau_{j}), j=2,...,J-1$ while $C_1 = (-\infty,\tau_1), C_J = [\tau_{J-1},\infty]$ such that the $J$ intervals are described using $J-1$ real values $\tau_1 < \tau_2 < ... < \tau_{J-1}$.
+
+In such a model only one Gaussian distributed random term $\varepsilon_t$ per choice is needed. Again identification implies that the level of the utility is not identified. Thus either no constant is contained in the model (this is the default) or $\tau_1=0$ can be assumed. In order to identify the scale in this situation the variance of $\varepsilon_t$ is assumed to be equal to 1.
+
+## MaCML estimation
+
+Since in this case for each choice situation only one random term is contained, estimation of such models is typically performed by maximizing the full probit likelihood. Calculating the choice probabilities involves  differencing of two univariate Gaussian CDFs which is numerically not too demanding.
+
+The MaCML approach again shows benefits in the panel situation of repeated choices: In that case one assumes that $T$ choice situations are observed for individual $i$ leading to a $T$ dimensional utility vector $(U_{i,t})_{t=1,...,T}$ and a random term $(\varepsilon_{i,t})_{t=1,...,T}$ of the same dimension. The choice probabilities are explained using regressor variables $x_{i,t} \in {\mathbb R}^K$. The coefficients $\beta \in {\mathbb R}^K$ can again be mixed in the population.
+
+**Rprobit** can only handle balanced panels in this case, thus $T$ needs to be identical for all deciders.
+
+Combining all $T$ choices for one individual we obtain a regressor matrix $X_i \in {\mathbb R}^{T \times K}$ and a vector of decisions $y_i \in {\mathbb R}^{T}$. For normally mixed coefficients $\beta \sim {\mathcal N}(b, \Omega)$ the utility vector has the following distribution: % $$
+U_i \sim {\mathcal N}( X_i b, X_i \Omega X_i' + \Sigma)
+$$ In general the evaluation of the probability requires the calculation of $2^{T}$ times the $T$ dimensional CDF. For larger values of $T$ this can be time consuming.
+
+Again the MaCML approach helps by exchanging the criterion function using the pairwise CML. For each pair of observations we need to evaluate the bivariate Gaussian CDF at 4 points. The number of pairs grows quadratic with $T$. This leads to a huge speedup for decent values of $T$.
+
+### Example
+
+The choice probabilities for vector $y_i$ then equal the CDF of $U_i$ to be evaluated for a rectangle in ${\mathbb R}^{T}$. For $T=2$ and $y_i = [1,2]$ for example we have to evaluate the probability that $U_i$ lies in $C_1 \times C_2$. This is achieved by evaluating the two dimensional CDF at all four corner points. Then the joint choice probability equals the weighted sum of the four values (the value at the upper right corner plus the value at the lower left corner minus the sum at the two remaining locations).
+
+## Data storage
+
+In **Rprobit** we adapt the data structures to store the observations in the ordered choice case. In this section we discuss one example with three choices from three alternatives taken by $N=1000$ deciders.
+
+First we set up the model structure: The matrix $\Sigma$ is proportional to the identity matrix. Here the first entry of $\beta$ is fixed to equal $1$.
+
+```{r, echo = FALSE, label="data_gen"}
+form <-  choice ~ 0 | V1 + V2 | 0
+mod <- mod_cl$new(
+  Hb   = diag(2)[,-1,drop=FALSE],
+  fb   = as.matrix(c(1,0),ncol=1),
+  HO   = matrix(0,0,0),
+  fO   = matrix(0,0,0),
+  HL   = matrix(1,1,1),
+  fL   = as.matrix(c(1,0,1),ncol=1),
+  alt  = 5,
+  ordered = TRUE
+)
+
+Tp <- 3
+HL <- diag(Tp*(Tp+1)/2)
+HL <- as.matrix(apply(HL[,c(1,4,6),drop=FALSE],1,sum))
+mod$HL <- HL
+mod$fL <- matrix(0,6,1)
+mod$alt <- 7
+control_simul <- list(Tp = rep(3,1000))
+re <- c()
+  
+set.seed(1)
+theta_0 <- c(
+  stats::rnorm(mod$lthb+mod$lthO),
+  stats::runif(mod$lthL,1,2),-2, 
+  stats::runif(mod$alt-2,-1,1)
+)
+
+Rprobit_obj <- setup_Rprobit(
+  form = form, mod = mod, re = re, seed = 1, theta_0 = theta_0,
+  control = control_simul
+)
+  
+Rprobit_obj <- fit_Rprobit(Rprobit_obj = Rprobit_obj, init_method = "theta")
+
+summary(Rprobit_obj)
+```
+
+Note that we specified only type 2 variables. For ordered choices the model contains only one utility so regressors may not vary across alternatives. This rules out type 1 or type 3 variables.
+
+While for unordered data one regressor matrix and one choice is stored per choice situation in the object `data`, in the ordered case we only store one matrix $X_i$ and one vector of choices $y_i$ per decider. The simulation data generated above has the following structure:
+
+```{r, echo = TRUE, label="data"}
+Rprobit_obj$data_raw
+Rprobit_obj$data_raw$df[1:9,]
+
+Rprobit_obj$data
+Rprobit_obj$data$data[[1]]
+
+```
+
+Estimation is performed using the function `fit_Rprobit`:
+
+```{r, echo = TRUE, label = "est"}
+Rprobit_obj <- fit_Rprobit(Rprobit_obj = Rprobit_obj)
+summary(Rprobit_obj)
+```

@@ -1,0 +1,317 @@
+---
+title: "Objects"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Objects}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: ref.bib
+link-citations: yes  
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "img/",
+  fig.align = "center",
+  fig.dim = c(8, 6), 
+  out.width = "75%"
+)
+library("Rprobit")
+```
+Rprobit uses R6 classes in order to represent many of the main objects used in the analysis. This vignette explains the fields used for each of the classes. 
+
+## Rprobit_cl 
+These objects store all information used within Rprobit, from the data to the estimated parameters and their estimated variances. They can be used to simulate data as well as to fit models to data. 
+
+* `data`: object of class `data_cl`, if contained 
+* `data_raw`: object of class `data_raw_cl`, if contained 
+* `form`: a formula
+* `re`: strings of names of variables modelled using random coefficients
+* `mod`: a [mod_cl] object
+* `vars`: names for regressors
+* `alt_names`: names for alternatives
+* `theta`: current parameter vector
+* `theta_0`: true parameter vector for simulated data
+* `ll`: log likelihood value after fitting
+* `H`: Hessian after fitting
+* `J`: variance of the score at the estimated parameter vector
+* `grad`: gradient at estimated parameter
+* `fit`: information for fit
+* `vv`: estimated variance matrix 
+* `vv2`: estimated variance matrix using approximated Hessian. 
+* `control`: [control_cl] object containing information on hyperparameters for the estimation
+* `info`: list containing information on fitting process, see below. 
+
+The objects are created either from a raw data set, which must 
+be formatted as indicated below. Alternatively the model can be 
+set up and used to simulate data. In that case the `Rprobit` 
+object is first generated and then passed onto `sim_data_raw` to simulate the data set. 
+
+Once specified the [Rprobit_cl] object can be passed to `fit_Rprobit` to fit the model. The corresponding output can be passed to the `summary` method to present the estimation results. 
+
+## control
+The object [control_cl] contains the following fields:
+
+* `approx_method`: 'SJ|ME|TVBS' specifies the approximation concept used. The packages implements the Solow-Joe [@SJ], the Mendel-Elston [@ME] and the TVBS [@TVBS] approximation. 
+* `probit`: logical, specifying whether the full probit likelihood or the CML approach shall be used. 
+* `normalize`: logical indicating whether the regressors should be normalized by taking the zscore prior to estimation to enhance the numerical stability.
+* `hess`: logical, indicating whether the Hessian shall be calculated analytically.
+* `control_weights`: list that can be used to impose different weighting strategies. 
+* `nCores`: integer, number of chores to use for parallel implementation
+* `control_nlm`: controls passed on to `nlm` in the optimization.
+* `pairs_list`: list specifying which pairs are used in the pairwise calculation of the CML.
+* `predict`: logical indicating whether predictions are to be calculated or not (relict from prior implementations)
+
+Most of the fields are only filled within the setup process. The user does not need to specify them, but the object provides access if wanted. 
+
+## control_nlm
+This object controls the behaviour of the optimization routine used. It is a list containing the fields: 
+
+* `typsize`: real vector, an estimate of the size of each parameter at the optimum 
+* `fscale`: real; estimate of the optimum value 
+* `print.level`: integer. Amount of information printed during optimization. 0: no output, 2: info at each iteration.
+* `ndigit`: number of significant digits in function.  
+* `gradtol`: real; tolerance for gradient.  
+* `stepmax`: real; maximal step length.  
+* `steptol`: tolerance for step length (when is a step considered to be zero?) 
+* `iterlim`: max number of iterations. 
+* `check.analyticals`: logical; should `nlm` compare analytical gradient and Hessian with numerical estimates? 
+
+For more details on these parameters see the documentation of `nlm`. 
+
+
+## info
+In this object information on the fitting process is stored. 
+
+* `name`: string, identified of the estimated model 
+* `ids`: vector of integers indicating the indices of individuals to be included.  
+* `description`: string; can be used to provide a verbal description of the model 
+* `nlm_info`: output of the nlm fitting procedure.  
+* `estimation_time`: time in seconds used for fitting.  
+* `hess_time`: time in seconds used for calculating the Hessian at the optimum. 
+* `R_version`, 
+* `Rprobit_version`
+
+## control_weights 
+This object controls the weighting scheme used both for the CML pair type and the relative weight for unbalanced panels. It is a list containing the fields: 
+
+* `cml_pair_type`: object (see below) 
+* `unbalanced_panel_weights`: object, see below)
+
+## cml_pair_type
+The object `cml_pair_type` is used in order to describe the weighting of different pair types. It is a list that contains the following fields:
+
+* `pair_type`: integer. 0: full pairwise, 1: adjacent looped, 2: adjacent 
+* `name`: String 
+* `d`: real, parameter for decay behaviour. 
+* `positions`
+* `weighting_function`
+* `individual_weights`
+
+The object is subject to changes due to ongoing research. 
+
+## unbalanced_panel_weights
+The object specifies the relative weighting scheme used for observations with different number of observations in a panel data context. It is a list containing the fields: 
+
+
+* `method` 
+* `rho`  
+* `var_metric`
+* `approx_hess`
+
+
+## control_simulations
+**Rprobit** can be used in order to simulate data sets. The simulation can be parameterized using this object. It is a list containing the following fields (subject to changes due to ongoing research):
+
+* `simulate_ar1_rho`: real, AR(1) parameter.  
+* `variate_distribution`: specification of the distribution of the regressor variables. 
+* `positions`
+
+
+
+## mod
+The [mod_cl] object stores information on the model to be estimated. More details can be found in the  [Model definition](model_definition.html) vignette. 
+
+Public fields are: 
+
+* `Hb, fb`: both must be matrices. They specify the systematic parameter $\beta = Hb * \theta_b + fb$.  
+* `HO, fO`: both must be matrices. These specify the lower triangular Cholesky factor $L_O$ of the matrix $\Omega = L_O L_O'$: $\mbox{vech}(L_O) = HO * \theta_O + fO$. 
+* `HL, fL`: both must be matrices. These specify the lower triangular Cholesky factor $L$ of the matrix $\Sigma =LL'$: $\mbox{vech}(L) = HL * \theta_L + fL$.
+* `ordered`: logical indicating of whether the choices are ordered or categorical without ordering. 
+
+These fields need to be supplied, the remaining fields are private and calculated on the basis of the public fields:
+
+* `alt`: integer, number of alternatives
+* `lthb, lthO, lthL`: number of parameters for $\beta, \Omega$ and $\Sigma$. 
+* `lRE`: integer, number of random coefficients. 
+
+
+## data_raw
+The raw data set acting as an input to the estimation is assumed to be supplied in wide format containing information on one choice situation per row. 
+
+The public fields are:
+
+* `df`: data frame containing the data.
+* `alt_names`: strings of labels for alternatives
+* `id` string of column in the data frame containing the decider names.
+* `choice`: string indicating the column where the choices are contained
+* `ordered`: logical indicating of whether the choices are ordered or categorical without ordering. 
+
+With this input the private fields can be calculated:
+
+* `N`: number of deciders
+* `Tp`: number of choice situations per decider
+* `dec_char`: names of variables containing regressors with characteristics of the deciders (and hence can only be used as type 2 variables)
+* `varying`: names of variables that vary over alternatives (and hence can act as type 1 or 3 variables)
+
+## data
+The raw data provided is recorded before feeding it into the estimation. The recoding converts the data into a list containing one list element per decider. It also recodes the variables into type 1 variables using dummy-coding for type 2 and type 3 variables. Finally variables are reordered such that the first columns correspond to the ones whose coefficients are mixed. The field
+`vars` provides the labels of the recoded variables. 
+
+For each decider the list element contains a field 'X' with the list of regressors in each choice situation, and a field 'y' containing the vector of decisions taken. The 'X' data has been differenced with respect to a base alternative. 
+
+The data object contains the following public fields:
+
+* `data`: list of data per decider
+* `vars`: labels of the regressors contained in 'X'
+* `ordered`: logical indicating of whether the choices are ordered or categorical without ordering. 
+
+A number of private fields are passed on from the raw data object:
+
+* `N`: number of deciders
+* `Tp`: number of choice situations per decider
+
+## Example: Modeling mode choice in the 'AER' data set 'TravelMode'
+In this example we demonstrate how to estimate a MNP model using **Rprobit** as an alternative to a nested logit model that is 
+estimated using the package **mlogit**:
+
+
+```{r, echo = FALSE}
+library("AER")
+library("mlogit")
+data("TravelMode", package ="AER")
+TM <- mlogit.data(TravelMode,choice = "choice", shape = "long", alt.levels = c("air","train","bus","car"))
+
+TM$avinc <- with(TM,(mode=="air")*income)
+# estimating a nested logit model 
+nl.TM <- mlogit(choice ~ wait+ avinc  + I(gcost-vcost) + travel | size | 0 , TM, reflevel = "car", nests = list(fly = "air", ground = c("train", "bus","car")), unscaled =TRUE)
+summary(nl.TM)
+
+pr = predict(nl.TM,newdata=TM)
+
+# calculate predictions for all alternatives 
+# and confusion matrix.
+conf_mat <- function(choice,pr){
+  N = dim(pr)[1]
+  J = dim(pr)[2]
+  
+  pred_choice = matrix(0,N,1)
+  conf_mat = matrix(0,J,J)
+  
+  for (j in 1:N){
+    pred_choice[j] =  which.max(pr[j,]) 
+    conf_mat[pred_choice[j],choice[j]] = conf_mat[pred_choice[j],choice[j]]  +1
+  }
+  alt_names <- colnames(pr)
+  colnames(conf_mat) <- alt_names
+  rownames(conf_mat) <- alt_names
+  return (list(pred_choice=pred_choice,conf_mat = conf_mat))
+} 
+
+pr = predict(nl.TM,newdata=TM)
+choice = pr[,1]*0
+fml = fitted(nl.TM)
+
+for (j in 1:210){
+  choice[j] = which.min(abs(pr[j,]-fml[j])) 
+}
+
+
+cm = conf_mat(choice,pr)
+cm$conf_mat
+
+```
+
+The confusion matrix indicates that the nesting is necessary. In the example it leads to a much better fit compared to the standard logit model. 
+
+To work with this data in {Rprobit} the data is contained in the object `TravelMode`, but is in long format. So we have to transform it into a wide format to use it afterwards: 
+
+
+```{r, echo = FALSE}
+head(TravelMode)
+
+# add avinc column 
+TravelMode["avinc"] <- with(TravelMode,(mode=="air")*income)
+
+data_raw = convert_data_long_data_raw(df= TravelMode,id_dec="individual", id_choice="individual",alternative="mode",choice="choice")
+
+data_raw
+```
+
+Then we need to set up the `Rprobit_obj` and pass it on to `fit_Rprobit` for estimation:  
+
+```{r, echo = FALSE}
+form <- choice ~ wait+ avinc + gcost + vcost + travel | size | 0 
+Travel_Rprobit <- setup_Rprobit(form, data_raw=data_raw, norm_alt="car",re=c(), error_struc="full")
+Travel_Rprobit$data_raw$alt_names = c("air","bus","car","train") 
+Travel_Rprobit$data = NULL
+Travel_Rprobit$theta_0 = c(-0.06,0.02,0.03,-.04,-0.007,-0.5,-0.3,-0.025,3,2.7,2.7,0,0,1,0,1) 
+Travel_Rprobit$theta = Travel_Rprobit$theta_0
+Travel_Rprobit <- fit_Rprobit(Rprobit_obj = Travel_Rprobit,init_method = "theta", cml_pair_type=0)
+summary(Travel_Rprobit)
+
+out <- confmat_Rprobit(Travel_Rprobit)
+out$conf_mat
+sum(diag(out$conf_mat))/sum(out$conf_mat)
+```
+We can explicitly incorporate the restriction that the coefficients for vcost and gcost are identical with opposite sign: 
+
+```{r, echo = FALSE}
+form <- choice ~ wait+ avinc + gcost + vcost + travel | size | 0 
+Travel_Rprobit <- setup_Rprobit(form, data_raw=data_raw, norm_alt="car",re=c(), error_struc="full")
+
+Hb <- Travel_Rprobit$mod$Hb
+Hb[,3] = Hb[,3]-Hb[,4]
+Hb = Hb[,-4]
+Travel_Rprobit$mod$Hb = Hb
+
+
+Travel_Rprobit$theta_0 = c(-0.05,0.013,0.04,-0.006,-0.53,-0.25,-0.16,3.6,3,2.9,1.3,0.88,-1,0.4,0.7)
+Travel_Rprobit$data_raw$alt_names = c("air","bus","car","train")
+Travel_Rprobit <- fit_Rprobit(Rprobit_obj = Travel_Rprobit,init_method = "theta")
+summary(Travel_Rprobit)
+
+Travel_Rprobit$data_raw$alt_names = c("air","bus","car","train") 
+out <- confmat_Rprobit(Travel_Rprobit)
+out$conf_mat
+sum(diag(out$conf_mat))/sum(out$conf_mat)
+```
+
+That did not lead to better predictions. Maybe the waiting time is differently valued depending on the mode? 
+
+```{r, echo = FALSE}
+form <- choice ~ avinc + gcost + vcost  + travel | size | wait 
+Travel_Rprobit <- setup_Rprobit(form, data_raw=data_raw, norm_alt="car",re=c(), error_struc="full")
+# wait is zero for the car -> need to take out coefficient. 
+Travel_Rprobit$mod$Hb = Travel_Rprobit$mod$Hb[,-10]
+
+Travel_Rprobit$theta = c(0.017,0.011,-0.012,-0.0018,-0.22,-0.015,-0.010,-0.04,-0.002,-0.0,.2,0.13,0.07,.99,0.97,0.05,0.02,0.01)
+Travel_Rprobit <- fit_Rprobit(Rprobit_obj = Travel_Rprobit,init_method = "theta")
+summary(Travel_Rprobit)
+
+Travel_Rprobit$data_raw$alt_names = c("air","bus","car","train")                
+out <- confmat_Rprobit(Travel_Rprobit)
+out$conf_mat
+sum(diag(out$conf_mat))/sum(out$conf_mat)
+
+cm$conf_mat
+sum(diag(cm$conf_mat))/sum(cm$conf_mat)
+
+```
+This implies that the probit model can produce a similar prediction accuracy and likelihood as the nested logit variant without the nesting 
+structure. The noise variance matrix $\Sigma$ for the three ground modes is almost of rank 1.  
+
+
+## References

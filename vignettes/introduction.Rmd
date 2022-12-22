@@ -1,0 +1,53 @@
+---
+title: "Introduction to Rprobit"
+output: rmarkdown::html_vignette
+author: Dietmar Bauer, Manuel Batram, Sebastian Büscher, Lennart Oelschläger
+date: '`r Sys.Date()`'
+vignette: >
+  %\VignetteIndexEntry{Introduction to Rprobit}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+#library(Rprobit)
+```
+
+**Rprobit** is an R package for the estimation of multinomial probit models.
+
+## Outline of the vignettes
+
+1. [Model definition](model_definition.html) 
+2. [Modeling setup](modeling_setup.html)
+3. [Model fitting](model_fitting.html)
+4. [Predictions](prediction.html)
+5. [Objects](objects.html)
+6. [Ordered probit](ordered_choices.html)
+
+
+## License
+
+**Rprobit** is licensed under the GNU General Public License v3.0.
+
+## Contact
+
+Maintainer: [Dietmar Bauer](mailto:dietmar.bauer@uni-bielefeld.de)
+
+Have you found a bug or want to request a feature? Please tell us! https://github.com/dbauer72/Rprobit/issues
+
+## Installing Rprobit
+
+To install the latest version of **Rprobit**, download the source package file from this site and run `install.packages("Rprobit")` in your R console.
+
+## Typical workflow
+The estimation of multinomial probit models follows a typical workflow:
+
+1. Generate data sets: {Rprobit} can handle data set in wide format. Data formatted in long format need to be converted. The function 'convert_data_long_data_raw' can be used. 
+2. Define the model to be estimated. The model formula and the model parameterisation need to be specified. See [model formulation](model_definition.html)
+3. Setting up the {Rprobit} object: The object contains the model formulation, the data set and the specifics of the estimation procedure. See [setup](modeling_setup.html).
+4. Fit the model. See [model fitting](model_fitting.html)
+5. Use the model for prediction. See [prediction](prediction.html).
