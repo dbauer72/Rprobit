@@ -4,10 +4,13 @@
 \alias{predict.Rprobit_cl}
 \title{Prediction Based on a Fitted Model}
 \usage{
-\method{predict}{Rprobit_cl}(object, ...)
+\method{predict}{Rprobit_cl}(object, newdata = NULL, ...)
 }
 \arguments{
 \item{object}{An \code{\link{Rprobit_cl}} object.}
+
+\item{newdata}{Either \code{\link{data_raw_cl}} object. Or a data.frame of the same structure as the ones on which
+the \code{\link{Rprobit_cl}} \code{object} is based upon.}
 
 \item{...}{Not used.}
 }

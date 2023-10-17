@@ -33,7 +33,7 @@ Train$time_B <- Train$time_B / 60
 
 # estimate a MNL model using mlogit
 Train.ml <- mlogit.data(Train, choice = "choice", shape = "wide",
-                     varying = 4:11, alt.levels = c("A", "B"), sep = "_",
+                     varying = 4:11, sep = "_",
                      opposite = c("price", "time", "change", "comfort"))
 
 Train.mod <- mlogit(choice ~ price + time + change + comfort | 0, Train.ml, reflevel = "A", R=500)

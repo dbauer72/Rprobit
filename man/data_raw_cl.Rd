@@ -11,6 +11,8 @@ An \code{data_raw_cl} object contains the data for modeling.
 \describe{
 \item{\code{df}}{data.frame containing the raw data}
 
+\item{\code{class_member}}{list, membership for latent classes}
+
 \item{\code{alt_names}}{strings containing the names of all alternatives.}
 
 \item{\code{id}}{string of the name of the column containing the decider ids.}
@@ -39,6 +41,7 @@ An \code{data_raw_cl} object contains the data for modeling.
 \itemize{
 \item \href{#method-data_raw_cl-new}{\code{data_raw_cl$new()}}
 \item \href{#method-data_raw_cl-set_df}{\code{data_raw_cl$set_df()}}
+\item \href{#method-data_raw_cl-set_class_member}{\code{data_raw_cl$set_class_member()}}
 \item \href{#method-data_raw_cl-set_alt_names}{\code{data_raw_cl$set_alt_names()}}
 \item \href{#method-data_raw_cl-set_id}{\code{data_raw_cl$set_id()}}
 \item \href{#method-data_raw_cl-set_choice}{\code{data_raw_cl$set_choice()}}
@@ -102,6 +105,23 @@ Set df
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{val}}{data frame}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-data_raw_cl-set_class_member"></a>}}
+\if{latex}{\out{\hypertarget{method-data_raw_cl-set_class_member}{}}}
+\subsection{Method \code{set_class_member()}}{
+Set class_member
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{data_raw_cl$set_class_member(val)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{val}}{list}
 }
 \if{html}{\out{</div>}}
 }

@@ -29,7 +29,7 @@ predict_Rprobit <- function(Rprobit_obj, data_new = NULL, all_pred = FALSE) {
   }
 
   # clone object to avoid side effects.
-  Rprobit_o <- Rprobit_obj$clone()
+  Rprobit_o <- Rprobit_obj$clone(deep= TRUE)
 
   ### check if list version of data is available:
   data_from_data_raw_model <- function(Rprobit_o) {
@@ -46,6 +46,12 @@ predict_Rprobit <- function(Rprobit_obj, data_new = NULL, all_pred = FALSE) {
     return(data_raw_to_data_out)
   }
 
+  ### if data_new is a dara frame -> convert it to a raw_data_cl object. 
+  if (is.data.frame(data_new)){
+    df = data_new
+    data_new = Rprobit_o$data_raw$clone()
+    data_new$set_df(df)
+  }
 
   ### add new data
   if (!(is.null(data_new))) {
@@ -64,8 +70,28 @@ predict_Rprobit <- function(Rprobit_obj, data_new = NULL, all_pred = FALSE) {
 
 
     if (inherits(data_new, "data_raw_cl")) {
-      Rprobit_o$data_raw <- data_new
-      Rprobit_o$data <- data_from_data_raw_model(Rprobit_o)
+      
+      
+      if (Rprobit_o$mod$ordered){
+        data_raw_obj = data_new
+        data = data_cl$new(ordered = TRUE,vars = data_raw_obj$dec_char)
+        ids = data_raw_obj$df[,data_raw_obj$id]
+        unique_ids = unique(ids)
+        data_df = list()
+        for (j in 1:length(unique_ids)){
+          ind = which(ids == unique_ids[j])
+          data_df[[j]] = list(X = data.matrix(data_raw_obj$df[ind,data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind,data_raw_obj$choice]))
+        }
+        #vars = allvars[[1]]
+        #alt_names = NULL
+        data$set_data(data_df)
+        Rprobit_o$data <- data
+      } else {
+        Rprobit_o$data <- data_from_data_raw_model(Rprobit_o)
+      }
+      
+      #Rprobit_o$data_raw <- data_new
+      #Rprobit_o$data <- data_from_data_raw_model(Rprobit_o)
     }
   } else if (is.null(Rprobit_o[["data"]]) & !is.null(Rprobit_o[["data_raw"]])) {
     if (Rprobit_o$mod$ordered) {
@@ -102,7 +128,6 @@ predict_Rprobit <- function(Rprobit_obj, data_new = NULL, all_pred = FALSE) {
       pred_n <- pred_probit_approx(Rprobit_o$theta, data_n, Rprobit_o$mod, Rprobit_o$control$approx_method)
       predictions <- rbind(predictions, pred_n)
     } else {
-      ### TODO: This function is not defined in this branch. To Dietmar: is it somewhere in one of your branches?
       pred_n <- pred_probit_ordered_approx(Rprobit_o$theta, data_n$X, data_n$y, Rprobit_o$mod)
 
       predictions <- rbind(predictions, pred_n)

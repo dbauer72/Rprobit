@@ -331,7 +331,19 @@ double TVBS_pmvnorm_old_cpp(Eigen::VectorXd upper, Eigen::VectorXd mu, Eigen::Ma
   }
   if( k == 2 )
   {
-    output       = bivnor(-(upper(0)-mu(0))/sqrt(Sigma(0,0)), -(upper(1)-mu(1))/sqrt(Sigma(1,1)), Sigma(0,1)/sqrt(Sigma(0,0)*Sigma(1,1)));
+    double x = -(upper(0)-mu(0))/sqrt(Sigma(0,0));
+    double y = -(upper(1)-mu(1))/sqrt(Sigma(1,1));
+    double rho = Sigma(0,1)/sqrt(Sigma(0,0)*Sigma(1,1));
+    double tol = 6;
+    if (x>tol) { x = tol;}
+    if (x<-tol) { x = -tol;}
+    if (y>tol) { y = tol;}
+    if (y<-tol) { y = -tol;}
+    if (rho>0.99) { rho = 0.99;}
+    if (rho<-0.99) { rho = -0.99;}
+    
+    //output       = bivnor(-(upper(0)-mu(0))/sqrt(Sigma(0,0)), -(upper(1)-mu(1))/sqrt(Sigma(1,1)), Sigma(0,1)/sqrt(Sigma(0,0)*Sigma(1,1)));
+    output       = bivnor(x,y, rho);
   }
   else
   {
@@ -600,6 +612,10 @@ double TVBS_pmvnorm_old_cpp(Eigen::VectorXd upper, Eigen::VectorXd mu, Eigen::Ma
     output = I_Ni.sum()/(M*1.0);
   }
   
+  // correct, if output is too small or too large
+  double tol = 0.000001; 
+  if (output>1-tol) { output = 1-tol;}
+  if (output<tol) { output = tol;}
   
   return output;
 }

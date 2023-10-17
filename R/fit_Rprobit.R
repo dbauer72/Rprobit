@@ -60,6 +60,10 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
 
   }
 
+  ### if ordered, then probit estimation does not work, we always use CML!
+  if (Rprobit_o$mod$ordered == TRUE){
+    Rprobit_o$control$probit = FALSE
+  }
   ### check model first ####
   # ok = check_mod_par(Rprobit_o$mod)
 
@@ -335,18 +339,18 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
 
 
   ### if no mixed effects, set HO and fO to zero matrices
-  if (Rprobit_o$mod$lthO == 0) {
-    Rprobit_o$mod$HO <- matrix(0, 0, 0)
-    Rprobit_o$mod$fO <- matrix(0, 0, 0)
-  }
+  #if (Rprobit_o$mod$lthO == 0) {
+  #  Rprobit_o$mod$HO <- matrix(0, 0, 0)
+  #  Rprobit_o$mod$fO <- matrix(0, 0, 0)
+  #}
 
   ### if no mixed effects, set HO and fO to zero matrices
-  if (any(is.na(Rprobit_o$mod$HO))) {
-    Rprobit_o$mod$HO <- matrix(0, 0, 0)
-  }
-  if (any(is.na(Rprobit_o$mod$fO))) {
-    Rprobit_o$mod$fO <- matrix(0, 0, 0)
-  }
+  #if (any(is.na(Rprobit_o$mod$HO))) {
+  #  Rprobit_o$mod$HO <- matrix(0, 0, 0)
+  #}
+  #if (any(is.na(Rprobit_o$mod$fO))) {
+  #  Rprobit_o$mod$fO <- matrix(0, 0, 0)
+  #}
 
 
   ### check if list version of data is available:
@@ -396,11 +400,11 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
   ### extract nlm controls
   {
     typsize_nlm <- rep(1, Rprobit_o$mod$lthb + Rprobit_o$mod$lthO + Rprobit_o$mod$lthL) # rep(1, length(Rprobit_o$theta))
-    if (!is.null(control_nlm$typsize)) {
-      typsize_nlm <- control_nlm$typsize
-    } else if (!is.null(Rprobit_o$control$control_nlm$typsize)) {
-      typsize_nlm <- Rprobit_o$control$control_nlm$typsize
-    }
+    #if (!is.null(control_nlm$typsize)) {
+    #  typsize_nlm <- control_nlm$typsize
+    #} else if (!is.null(Rprobit_o$control$control_nlm$typsize)) {
+    #  typsize_nlm <- Rprobit_o$control$control_nlm$typsize
+    #}
 
     fscale_nlm            <- 1
     if(!is.null(control_nlm$fscale)){
@@ -522,6 +526,7 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
     #re_register_dopar(Rprobit_o = Rprobit_o, use_parallel = use_parallel)
 
     Rprobit_o$data = data_tr
+    
     nlm_out         <- optimizer(ll_function = ll_function, Rprobit_o = Rprobit_o, data = Rprobit_o$data)
     time_2          <- Sys.time()
     Rprobit_o$ll    <- (-1)*(nlm_out$minimum)

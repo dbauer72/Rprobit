@@ -14,13 +14,13 @@
 #' @param theta
 #' \code{theta}-object
 #' @param mod
-#' A \code{\link{mod_cl}} object.
+#' A \code{\link{mod_cl}} or \code{\link{mod_latclass_cl}} object.
 #' @param seed
 #' Seed for the simulation of choice data
 #' @param control_simulation
 #' list to fine-tune the simulated data. In case auto correlated errors should be simulated, control_simulation$simulate_ar1_rho determines auto correlation coefficient/matrix
 #'
-#' @return list of \code{Rprobit_obj} and \code{theta}
+#' @return list of \code{data_raw}, \code{data} and \code{theta}
 #' 
 #' @keywords internal
 
@@ -28,6 +28,14 @@ sim_data_raw <- function(
     ASC, allvars, re, choice, theta, mod, seed, control_simulation = NULL
   ) {
 
+  ### differentiate between latent class and else 
+  lat_class = FALSE
+  num_class = 1 
+  
+  if (inherits(mod,"mod_latclass_cl")==TRUE){
+    lat_class = TRUE
+    num_class = mod$num_class
+  }
   ### set seed
   if (!is.null(seed)) set.seed(seed)
 
@@ -40,24 +48,61 @@ sim_data_raw <- function(
       tauk <- (exp(dtau))
       theta <- c(theta, tauk)
     }
+    if (lat_class==TRUE){
+      # latent class model requires more parameters. 
+      tot_params <- mod$tot_params
+      theta <- stats::rnorm(tot_params)
+    }
   }
 
   ### build 'par'
-  par <- build_par_from_mod(theta, mod)
-
+  # list in case latent classes are wanted. 
+  par_all <- list(num_class)
+  if (lat_class == FALSE){
+    par_all[[1]] <- build_par_from_mod(theta, mod)
+    pi = 1
+  } else {
+    for (j in 1:num_class){
+      param_one <- mod$lthb + mod$lthO + mod$lthL 
+      par_all[[j]] <- build_par_from_mod(theta[(j-1)*param_one+c(1:param_one)], mod)
+    }
+    pi_eta = c(0,theta[num_class*param_one + c(1:(num_class-1))])
+    pi = exp(pi_eta)/sum(exp(pi_eta))
+  }
+  
+  
+  
   ### extract parameters
+  
   if (!is.null(control_simulation)) {
     Tp <- control_simulation$Tp
     N <- length(Tp) # mod$N
+    ### distribution used for random effects
+    if (!is.null(control_simulation$dis)){
+      dis = control_simulation$dis
+    } else {
+      dis = 'rnorm('
+    }
+    if (!is.null(control_simulation$pars)){
+      pars = control_simulation$pars
+    } else {
+      pars = ',0,1)'
+    }
+    
   } else {
     Tp <- rep(1, 100)
     N <- 100
+    ### distribution used for random effects
+    dis = 'rnorm('
+    pars = ',0,1)'
   }
   alt <- mod$alt
-  b <- par$b
-  Omega_chol <- par$Omega_chol
-  Sigma_chol <- par$Sigma_chol
 
+  ### draw class membership
+  member_draws = stats::rmultinom(N,1,pi)
+  class_member <- as.list((1:num_class) %*% member_draws)
+  
+  
   ### extract simulation controls
   if (!is.null(control_simulation)) {
     rho <- control_simulation$simulate_ar1_rho
@@ -72,12 +117,18 @@ sim_data_raw <- function(
     data_raw <- data_raw_cl$new(choice = "choice", id = "id_macml")
 
     ### extract category bounds
+    par <- par_all[[1]]
     tauk <- par$tauk
 
     for (n in 1:N) {
 
+      par <- par_all[[ class_member[[n]] ]]
+      b <- par$b
+      Omega_chol <- par$Omega_chol
+      Sigma_chol <- par$Sigma_chol
+      
       ### linear coefficient vector
-      b_n <- b + Omega_chol %*% stats::rnorm(length(b))
+      b_n <- b + Omega_chol %*% eval(parse(text = sprintf('stats::%s %d%s',dis,length(b),pars)))    # stats::rnorm(length(b))
       e_n <- Sigma_chol %*% stats::rnorm(Tp)
 
       ### type 1 covariate
@@ -96,25 +147,35 @@ sim_data_raw <- function(
     }
     ### end for n in 1:N
     data_raw$set_df(data_raw_df)
+    data <- data_raw_to_data(data_raw = data_raw, allvars = allvars, choice = choice, re = re, norm_alt = 1, alt = alt, ASC = ASC)    
+    
   } else {
     ### check 'Tp'
     # if(!length(Tp) %in% c(1, mod$N)) stop("Variable 'Tp' has to be of length 1 or of length equal to number of decision makers.")
     # if(length(Tp)==1) Tp <- rep(Tp, mod$N)
 
     ### build data_raw
-    data_raw_df <- data.frame()
+    data_raw_df_li <- list(N) 
     data_raw <- data_raw_cl$new()
-
+    data_raw$id <- "id_macml"
+    data_raw$choice <- "choice"
+    
     for (n in 1:N) {
 
+      #par <- par_all[[ class_member[[n]] ]]
+      #b <- par$b
+      #Omega_chol <- par$Omega_chol
+      #Sigma_chol <- par$Sigma_chol
+      
+      ### draw 
+      data_raw_nt <- data.frame(id_macml = rep(1,Tp[n]), choice = NA)
       ### linear coefficient vector
-      b_n <- b + Omega_chol %*% stats::rnorm(length(b))
+      #b_n <- b + Omega_chol %*% stats::rnorm(length(b))
 
       for (t in 1:Tp[n]) {
 
         ### characteristics
         cov_nt <- matrix(NA, nrow = 1, ncol = 0)
-
         ### type 1 covariate
         if (sum(as.character(allvars[[1]]) != "0") > 0) {
 
@@ -208,14 +269,47 @@ sim_data_raw <- function(
         }
 
         ### create regressor matrix
-        data_raw_nt <- data.frame(id_macml = 1, choice = NA, cov_nt)
-        colnames(data_raw_nt)[2] <- choice
-        data_raw$id <- "id_macml"
-        data_raw$choice <- "choice"
-        data_raw$set_df(data_raw_nt)
+        data_raw_nt[t,colnames(cov_nt)] <- cov_nt
+        #data_raw_nt[t,] <- c(id_macml = 1, choice = NA, cov_nt)
+        #colnames(data_raw_nt)[2] <- choice
 
-        X_nt <- data_raw_to_data(data_raw = data_raw, allvars = allvars, choice = choice, re = re, norm_alt = 1, alt = alt, ASC = ASC)$data[[1]]$X[[1]]
-
+        
+        ### fill data_raw
+        data_raw_nt[t,"id_macml"] <- n
+        data_raw_nt[t,"choice"] <- 1
+        
+      }
+      
+      data_raw_df_li[[n]] <- data_raw_nt
+    } ### end for n in 1:N
+    
+    #data_raw_df <- dplyr::bind_rows(data_raw_df_li)
+    data_raw_df <- do.call(rbind, data_raw_df_li)
+    data_raw$id <- "id_macml"
+    data_raw$choice <- "choice"
+    data_raw$set_df(data_raw_df)
+         
+        #data_raw_df <- rbind(data_raw_df, data_raw_nt)
+    # convert raw_data to data for drawing choices. 
+    data <- data_raw_to_data(data_raw = data_raw, allvars = allvars, choice = choice, re = re, norm_alt = 1, alt = alt, ASC = ASC)    
+        
+    ### The following code is there to draw choice from utility. 
+    cur = 1
+    for (n in 1:N) {
+      #data_raw_nt <- data.frame(id_macml = rep(1,Tp[n]), choice = NA)
+      par <- par_all[[ class_member[[n]] ]]
+      b <- par$b
+      Omega_chol <- par$Omega_chol
+      Sigma_chol <- par$Sigma_chol
+      
+      ### linear coefficient vector
+      b_n <- b + Omega_chol %*% eval(parse(text = sprintf('stats::%s %d%s',dis,length(b),pars)))  # %*% stats::rnorm(length(b))
+      
+      for (t in 1:Tp[n]) {
+    
+        #data_raw$set_df(data_raw_nt[t,])
+        #X_nt <- data_raw_to_data(data_raw = data_raw, allvars = allvars, choice = choice, re = re, norm_alt = 1, alt = alt, ASC = ASC)$data[[1]]$X[[1]]
+        X_nt <- data$data[[n]]$X[[t]]
 
         ### draw random error
         error_nt <- Sigma_chol %*% stats::rnorm(alt)
@@ -275,14 +369,23 @@ sim_data_raw <- function(
         error_ntm1 <- error_nt
 
         ### fill data_raw
-        data_raw_nt$"id_macml" <- n
-        data_raw_nt$choice <- choice_nt
-        data_raw_df <- rbind(data_raw_df, data_raw_nt)
+        data_raw$df[cur,"choice"] <- choice_nt
+        data$data[[n]]$y[t] <- choice_nt
+        cur = cur+1 
+        #data_raw_nt[t,"choice"] <- choice_nt
+        #data_raw_df <- rbind(data_raw_df, data_raw_nt)
       }
+      
+      #data_raw_df_li[[n]] <- data_raw_nt
     } ### end for n in 1:N
-    data_raw$set_df(data_raw_df)
+    
+    #data_raw_df <- bind_rows(data_raw_df_li)
+    #data_raw$id <- "id_macml"
+    #data_raw$choice <- "choice"
+    #data_raw$set_df(data_raw_df)
   }
-
-
-  return(list("data_raw" = data_raw, "theta_0" = theta))
+  data_raw$class_member <- class_member
+  data$class_member <- class_member
+  
+  return(list("data_raw" = data_raw, "data" = data, "theta_0" = theta))
 }

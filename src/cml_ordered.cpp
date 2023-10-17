@@ -321,7 +321,7 @@ NumericVector ll_macml_o(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List 
     Eigen::MatrixXd J = JJ0*JJ1*JJ2; // d(b,vech(Omega),vech(Sigma)/dtheta = d(b,vech(Omega),vech(Sigma))/d(thb,vech(LO),vech(LS))* d(thb...)/dtheta.
 
     Eigen::VectorXd gradCML = grad_ordered_CML(xb, y_n, Lambda, alt, dtauk, cml_pair_type);
-
+    Eigen::MatrixXd hessCML = hess_ordered_CML_approx(xb, y_n, Lambda, alt, dtauk, cml_pair_type);
 
     Eigen::MatrixXd J_full(J.cols()+alt-1,J.rows()+alt-1);
     J_full.setZero();
@@ -330,7 +330,7 @@ NumericVector ll_macml_o(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List 
     J_full.block(J.cols(),J.rows(),alt-1,alt-1) = I_alt;
 
     grad_n = J_full * gradCML;
-
+    Hess_approx_n2 = J_full * hessCML * J_full.transpose();
 
     /////////////////////////////////////////////////////////
     //// Hessian     ///
@@ -416,7 +416,7 @@ NumericVector ll_macml_o(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List 
   }
 
   out.attr("hessian1") =(Hess_approx.array());
-  out.attr("hessian2") =(Hess_approx.array());
+  out.attr("hessian2") =(Hess_approx2.array());
   return out;
 
 }
@@ -481,6 +481,8 @@ double prob_ordered(Eigen::VectorXd xb, Eigen::VectorXd y_n, Eigen::MatrixXd Lam
   Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
   Eigen::MatrixXd lambda_t = lambda.transpose();
 
+  //Rcout << lambda << std::endl;
+  
   //............................................................//
   // Normalize upper limits and covariance matrix (to correlation matrix)
   //............................................................//
@@ -490,15 +492,15 @@ double prob_ordered(Eigen::VectorXd xb, Eigen::VectorXd y_n, Eigen::MatrixXd Lam
   Eigen::MatrixXd Lambda_cor = (Lambda.array()/lambda_li_lj.array()).matrix();
 
 
-  // find upper an lower bounds
+  // find upper and lower bounds
   int n=xb.size();
   Eigen::MatrixXd upper_lower(n,2);
   upper_lower.setZero();
 
   for (int i_n=0;i_n<n;i_n++){
 
-    upper_lower(i_n,0) = tauk(0)-10.0;
-    upper_lower(i_n,1)=  tauk(alt-2)+10.0;
+    upper_lower(i_n,0) = tauk(0)-50.0;
+    upper_lower(i_n,1)=  tauk(alt-2)+50.0;
 
     if (y_n(i_n)<1){ y_n(i_n)=1;}
     if (y_n(i_n)>alt){ y_n(i_n)=alt;}
@@ -719,15 +721,19 @@ Eigen::MatrixXd pred_probit_ordered_approx(Eigen::VectorXd theta, Eigen::MatrixX
 
   double xbn = 1.0;
 
+  Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
+  
+  //Rcout << lambda << std::endl; 
+  
   for(int i_choice_1 = 0; i_choice_1 < n; i_choice_1++){
-    xbn = xb(i_choice_1) / Lambda(i_choice_1,i_choice_1);
-    prob_predict(i_choice_1,0) = std_normal_cdf(tauk(0)-xbn);
+    xbn = xb(i_choice_1) ;
+    prob_predict(i_choice_1,0) = std_normal_cdf((tauk(0)-xbn)/ lambda(i_choice_1));
     for (int y=1; y < alt-1; y++){
-      prob_predict(i_choice_1,y) = std_normal_cdf(tauk(y)-xbn)-std_normal_cdf(tauk(y-1)-xbn);
+      prob_predict(i_choice_1,y) = std_normal_cdf((tauk(y)-xbn)/ lambda(i_choice_1))-std_normal_cdf((tauk(y-1)-xbn)/ lambda(i_choice_1));
     }
 
     // last probability
-    prob_predict(i_choice_1,alt-1) = 1.0- std_normal_cdf(tauk(alt-2)-xbn);
+    prob_predict(i_choice_1,alt-1) = 1.0- std_normal_cdf((tauk(alt-2)-xbn)/ lambda(i_choice_1));
 
   } //end i_choice_1 loop over choice decisions.
 

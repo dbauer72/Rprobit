@@ -220,7 +220,7 @@ mod_cl <- R6::R6Class("mod_cl",
       print_est(self$Hb)
       print_est(self$fb)
       cat("\n")
-      if (private$.lthO > 0) {
+      if (private$.lRE > 0) {
         cat("Omega (HO, fO): \n")
         print_est(self$HO)
         print_est(self$fO)

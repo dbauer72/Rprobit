@@ -4,7 +4,7 @@
 \alias{data_raw_to_data}
 \title{Transform 'data_raw' to 'data'}
 \usage{
-data_raw_to_data(data_raw, allvars, choice, re, norm_alt, alt, ASC)
+data_raw_to_data(data_raw, allvars, choice, re, norm_alt, alt = 0, ASC)
 }
 \arguments{
 \item{data_raw}{\code{data_raw_cl}-object}

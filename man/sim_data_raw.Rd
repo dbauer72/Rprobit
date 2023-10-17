@@ -26,14 +26,14 @@ sim_data_raw(
 
 \item{theta}{\code{theta}-object}
 
-\item{mod}{A \code{\link{mod_cl}} object.}
+\item{mod}{A \code{\link{mod_cl}} or \code{\link{mod_latclass_cl}} object.}
 
 \item{seed}{Seed for the simulation of choice data}
 
 \item{control_simulation}{list to fine-tune the simulated data. In case auto correlated errors should be simulated, control_simulation$simulate_ar1_rho determines auto correlation coefficient/matrix}
 }
 \value{
-list of \code{Rprobit_obj} and \code{theta}
+list of \code{data_raw}, \code{data} and \code{theta}
 }
 \description{
 This function simulates choice data.

@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
 4. [Predictions](prediction.html)
 5. [Objects](objects.html)
 6. [Ordered probit](ordered_choices.html)
-
+7. [Latent class models](latent_class_models.html)
 
 ## License
 

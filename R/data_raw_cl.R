@@ -55,7 +55,10 @@ data_raw_cl <- R6::R6Class("data_raw_cl",
 
     #' @field df data.frame containing the raw data
     df = data.frame(),
-
+    
+    #' @field class_member  list, membership for latent classes 
+    class_member = list(), 
+    
     #' @field alt_names strings containing the names of all alternatives.
     alt_names = list(),
 
@@ -94,7 +97,10 @@ data_raw_cl <- R6::R6Class("data_raw_cl",
         is.character(choice), is.logical(ordered)
       )
       self$df <- df
-      self$alt_names <- alt_names
+      if (any(names(df) == choice)){
+        choices <- as.factor(df[,choice])
+        self$alt_names <- levels(choices)
+      }
       self$id <- id
       if (dim(df)[1] > 0) {
         ids <- df[, id]
@@ -121,11 +127,26 @@ data_raw_cl <- R6::R6Class("data_raw_cl",
         private$.N <- length(unique(ids))
         tt <- table(ids)
         private$.Tp <- as.vector(tt)
+        
+        choices <- as.factor(self$df[,self$choice])
+        self$alt_names <- levels(choices)
+        
       } else {
         cat("df must be a data.frame.")
       }
     },
 
+    #' @description
+    #' Set class_member
+    #' @param val list
+    set_class_member = function(val) {
+      if (is.list(val)) {
+        self$class_member <- val
+      } else {
+        cat("class_member must be a list.")
+      }
+    },
+    
     #' @description
     #' Set alt_names
     #' @param val alt_names

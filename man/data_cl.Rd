@@ -14,6 +14,8 @@
 \describe{
 \item{\code{data}}{list containing the data in regressor form}
 
+\item{\code{class_member}}{list  membership for latent classes}
+
 \item{\code{ordered}}{Boolean indicating if choices are ordered.}
 
 \item{\code{vars}}{string array containing the names of the regressor variables.}
@@ -34,6 +36,7 @@
 \itemize{
 \item \href{#method-data_cl-new}{\code{data_cl$new()}}
 \item \href{#method-data_cl-set_data}{\code{data_cl$set_data()}}
+\item \href{#method-data_cl-set_class_member}{\code{data_cl$set_class_member()}}
 \item \href{#method-data_cl-set_vars}{\code{data_cl$set_vars()}}
 \item \href{#method-data_cl-set_ordered}{\code{data_cl$set_ordered()}}
 \item \href{#method-data_cl-print}{\code{data_cl$print()}}
@@ -75,6 +78,23 @@ Set data
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{val}}{data frame}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-data_cl-set_class_member"></a>}}
+\if{latex}{\out{\hypertarget{method-data_cl-set_class_member}{}}}
+\subsection{Method \code{set_class_member()}}{
+Set class_member
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{data_cl$set_class_member(val)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{val}}{list}
 }
 \if{html}{\out{</div>}}
 }

@@ -122,6 +122,8 @@ normalise_data <- function(data_raw, normalisation = FALSE, allvars = NULL, ASC 
       attr(x = data_raw, which = "normalisation") <- normalisation_list
       attr(x = data_raw, which = "normalised") <- TRUE
     }
+  } else {
+    attr(x = data_raw, which = "normalisation") <- FALSE
   }
 
 

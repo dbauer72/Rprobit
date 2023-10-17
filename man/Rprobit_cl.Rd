@@ -108,6 +108,7 @@ the approximated Hessian.}
 \item \href{#method-Rprobit_cl-set_HessEL}{\code{Rprobit_cl$set_HessEL()}}
 \item \href{#method-Rprobit_cl-print}{\code{Rprobit_cl$print()}}
 \item \href{#method-Rprobit_cl-coef}{\code{Rprobit_cl$coef()}}
+\item \href{#method-Rprobit_cl-plot}{\code{Rprobit_cl$plot()}}
 \item \href{#method-Rprobit_cl-predict}{\code{Rprobit_cl$predict()}}
 \item \href{#method-Rprobit_cl-residuals}{\code{Rprobit_cl$residuals()}}
 \item \href{#method-Rprobit_cl-AIC}{\code{Rprobit_cl$AIC()}}
@@ -502,7 +503,7 @@ Set info
 \if{html}{\out{<a id="method-Rprobit_cl-set_gradEL"></a>}}
 \if{latex}{\out{\hypertarget{method-Rprobit_cl-set_gradEL}{}}}
 \subsection{Method \code{set_gradEL()}}{
-Set grad
+Set gradEL
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Rprobit_cl$set_gradEL(val)}\if{html}{\out{</div>}}
 }
@@ -519,7 +520,7 @@ Set grad
 \if{html}{\out{<a id="method-Rprobit_cl-set_HessEL"></a>}}
 \if{latex}{\out{\hypertarget{method-Rprobit_cl-set_HessEL}{}}}
 \subsection{Method \code{set_HessEL()}}{
-Set grad
+Set HessEL
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Rprobit_cl$set_HessEL(val)}\if{html}{\out{</div>}}
 }
@@ -556,14 +557,42 @@ beta
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Rprobit_cl-plot"></a>}}
+\if{latex}{\out{\hypertarget{method-Rprobit_cl-plot}{}}}
+\subsection{Method \code{plot()}}{
+provide plots for model (useful for latent class models)
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Rprobit_cl$plot(dims = 1, cdf = FALSE, margin = 0.1)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{dims}}{vector of integers indicating the coordinates to be plotted. Only the first two integers are considered}
+
+\item{\code{cdf}}{Boolean, indicating whether the cdf (TRUE) or the pdf (FALSE; default) should be plotted.}
+
+\item{\code{margin}}{real; factor (0.1 = 10\%; minimum default margin) to enlarge plotting area.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Rprobit_cl-predict"></a>}}
 \if{latex}{\out{\hypertarget{method-Rprobit_cl-predict}{}}}
 \subsection{Method \code{predict()}}{
 provide predictions for model contained in object.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Rprobit_cl$predict()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Rprobit_cl$predict(newdata = NULL)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{newdata}}{either a \code{\link{data_raw_cl}} object or a data frame.}
+}
+\if{html}{\out{</div>}}
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Rprobit_cl-residuals"></a>}}

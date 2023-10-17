@@ -38,6 +38,8 @@ of the normal CDF. Can be:
 
 \item{\code{control_weights}}{A \code{list} of weights for the CML.}
 
+\item{\code{control_simulation}}{A \code{list} of instructions for data simulation.}
+
 \item{\code{nCores}}{An \code{integer}, the number of cores to use for parallel computation.}
 
 \item{\code{normalize}}{\itemize{
@@ -76,6 +78,7 @@ initialization function
   pairs_list = NULL,
   el = FALSE,
   control_weights = NULL,
+  control_simulation = NULL,
   nCores = 1,
   normalize = FALSE
 )}\if{html}{\out{</div>}}
@@ -97,6 +100,8 @@ initialization function
 \item{\code{el}}{Boolean whether the empirical likelihood is employed}
 
 \item{\code{control_weights}}{a list of control weights}
+
+\item{\code{control_simulation}}{a list of control options for data simulation}
 
 \item{\code{nCores}}{number of cores to use for parallel calculation.}
 

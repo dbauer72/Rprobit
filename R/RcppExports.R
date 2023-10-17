@@ -54,7 +54,6 @@ ME_hess_new <- function(x, r) {
 #' nxn correlation matrix.
 #' @return
 #' double; log of probability.
-#' @keywords internal
 #'
 SJ <- function(x, r) {
     .Call(`_Rprobit_SJ`, x, r)
@@ -69,7 +68,6 @@ SJ <- function(x, r) {
 #' nxn correlation matrix.
 #' @return
 #' vector; gradient of log of probability.
-#' @keywords internal
 #'
 dlcond <- function(x, r) {
     .Call(`_Rprobit_dlcond`, x, r)
@@ -210,7 +208,7 @@ TVBS_hess_new <- function(x_norm, Cor_mat) {
 #' Calculation of Approximated Composite Marginal Likelihood
 #'
 #' @description
-#' This function computes the composite marginal likelihood.
+#' This function computes the marginal likelihood.
 #'
 #' @param theta
 #' parameter vector
@@ -224,6 +222,30 @@ TVBS_hess_new <- function(x_norm, Cor_mat) {
 #' @return
 #' A vector, containing the negative log-likelihood with attributes containing the gradient and (if specified in the controls) the Hessian.
 #'
+#' @export
+#'
+ll_macml_marginal <- function(theta, data_obj, mod, control) {
+    .Call(`_Rprobit_ll_macml_marginal`, theta, data_obj, mod, control)
+}
+
+#' Calculation of Approximated Composite Marginal Likelihood
+#'
+#' @description
+#' This function computes the composite marginal likelihood.
+#'
+#' @param theta
+#' parameter vector
+#' @param data_obj
+#' data_cl object
+#' @param mod
+#' A \code{\link{mod_cl}} object.
+#' @param control
+#' Controls for the probit estimation.
+#'
+#' @return
+#' A vector, containing the negative log-likelihood with attributes containing the gradient and 
+#' (if specified in the controls) the Hessian.
+#' For el==1 the log CML contribution as well as gradients for each decider is contained in the output.
 #' @export
 #'
 ll_macml <- function(theta, data_obj, mod, control) {
@@ -249,6 +271,10 @@ ll_probit <- function(theta, data_obj, mod, control) {
     .Call(`_Rprobit_ll_probit`, theta, data_obj, mod, control)
 }
 
+cal_choice_probs_1_nograd <- function(X, alt, y1, b, Sigma, Omega, approx_method) {
+    .Call(`_Rprobit_cal_choice_probs_1_nograd`, X, alt, y1, b, Sigma, Omega, approx_method)
+}
+
 #' Choice probabilities for probit models
 #' @description
 #' Computes the approximate choice porbabilities for the probit case.
@@ -266,6 +292,28 @@ ll_probit <- function(theta, data_obj, mod, control) {
 #'
 pred_probit_approx <- function(theta, data, mod, control) {
     .Call(`_Rprobit_pred_probit_approx`, theta, data, mod, control)
+}
+
+#' Calculation of Approximated Composite Marginal Likelihood for latent class models. No gradient supplied!
+#'
+#' @description
+#' This function computes the composite marginal likelihood for latent class model.
+#'
+#' @param theta
+#' parameter vector
+#' @param data_obj
+#' data_cl object
+#' @param mod
+#' A \code{\link{mod_cl}} object.
+#' @param control
+#' Controls for the probit estimation.
+#'
+#' @return
+#' A vector, containing the negative log-likelihood, no gradient and Hessian.
+#' @export
+#'
+ll_macml_LC <- function(theta, data_obj, mod, control) {
+    .Call(`_Rprobit_ll_macml_LC`, theta, data_obj, mod, control)
 }
 
 #' providing categories for integers for cycling through upper and lower bounds
@@ -457,6 +505,40 @@ prob_ordered <- function(xb, y_n, Lambda, alt, dtauk, approx_method) {
 #'
 pred_probit_ordered_approx <- function(theta, Xn, yn, mod) {
     .Call(`_Rprobit_pred_probit_ordered_approx`, theta, Xn, yn, mod)
+}
+
+#' biv_normal_cdf
+#' @description
+#' The function computes the bivariate Gaussian CDF. 
+#' @param w0
+#' double; x-coordinate 
+#' @param w1
+#' double; y-coordinate 
+#' @param rho
+#' double; correlation
+#' @return 
+#' double; cdf 
+#' @keywords internal
+#'
+biv_normal_cdf <- function(x0, x1, r12) {
+    .Call(`_Rprobit_biv_normal_cdf`, x0, x1, r12)
+}
+
+#' biv_normal_pdf
+#' @description
+#' The function computes the bivariate Gaussian PDF. 
+#' @param w0
+#' double; x-coordinate 
+#' @param w1
+#' double; y-coordinate 
+#' @param rho
+#' double; correlation
+#' @return 
+#' double; pdf 
+#' @keywords internal
+#'
+biv_normal_pdf <- function(x0, x1, r12) {
+    .Call(`_Rprobit_biv_normal_pdf`, x0, x1, r12)
 }
 
 #' Hess_pdf

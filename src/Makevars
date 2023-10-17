@@ -6,8 +6,8 @@
 ##    CXX_STD       to select C++11 via 'CXX11'
 ## But for standard builds without external dependencies, nothing is needed
 
-CXX_STD = CXX11
-#CXXFLAGS+= -Wa,-mbig-obj  -Wno-ignored-attributes
+#CXX_STD = CXX11
+#CXXFLAGS+= -Wa,-mbig-obj, -S  -Wno-ignored-attributes
 #CXX11FLAGS+= -Wa,-mbig-obj -Wno-ignored-attributes -fopenmp
 #CXX14FLAGS+= -Wa,-mbig-obj -Wno-ignored-attributes
 #PKG_CXXFLAGS += $(SHLIB_OPENMP_CXXFLAGS)

@@ -173,6 +173,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ll_macml_marginal
+NumericVector ll_macml_marginal(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List mod, Rcpp::List control);
+RcppExport SEXP _Rprobit_ll_macml_marginal(SEXP thetaSEXP, SEXP data_objSEXP, SEXP modSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type data_obj(data_objSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type control(controlSEXP);
+    rcpp_result_gen = Rcpp::wrap(ll_macml_marginal(theta, data_obj, mod, control));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ll_macml
 NumericVector ll_macml(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List mod, Rcpp::List control);
 RcppExport SEXP _Rprobit_ll_macml(SEXP thetaSEXP, SEXP data_objSEXP, SEXP modSEXP, SEXP controlSEXP) {
@@ -201,6 +215,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cal_choice_probs_1_nograd
+double cal_choice_probs_1_nograd(Eigen::MatrixXd X, int alt, int y1, Eigen::VectorXd b, Eigen::MatrixXd Sigma, Eigen::MatrixXd Omega, std::string approx_method);
+RcppExport SEXP _Rprobit_cal_choice_probs_1_nograd(SEXP XSEXP, SEXP altSEXP, SEXP y1SEXP, SEXP bSEXP, SEXP SigmaSEXP, SEXP OmegaSEXP, SEXP approx_methodSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type alt(altSEXP);
+    Rcpp::traits::input_parameter< int >::type y1(y1SEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type b(bSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Omega(OmegaSEXP);
+    Rcpp::traits::input_parameter< std::string >::type approx_method(approx_methodSEXP);
+    rcpp_result_gen = Rcpp::wrap(cal_choice_probs_1_nograd(X, alt, y1, b, Sigma, Omega, approx_method));
+    return rcpp_result_gen;
+END_RCPP
+}
 // pred_probit_approx
 Eigen::MatrixXd pred_probit_approx(Eigen::VectorXd theta, Rcpp::List data, Rcpp::List mod, Rcpp::List control);
 RcppExport SEXP _Rprobit_pred_probit_approx(SEXP thetaSEXP, SEXP dataSEXP, SEXP modSEXP, SEXP controlSEXP) {
@@ -212,6 +243,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type control(controlSEXP);
     rcpp_result_gen = Rcpp::wrap(pred_probit_approx(theta, data, mod, control));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ll_macml_LC
+NumericVector ll_macml_LC(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List mod, Rcpp::List control);
+RcppExport SEXP _Rprobit_ll_macml_LC(SEXP thetaSEXP, SEXP data_objSEXP, SEXP modSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type data_obj(data_objSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type control(controlSEXP);
+    rcpp_result_gen = Rcpp::wrap(ll_macml_LC(theta, data_obj, mod, control));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -353,6 +398,32 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::VectorXd >::type yn(ynSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
     rcpp_result_gen = Rcpp::wrap(pred_probit_ordered_approx(theta, Xn, yn, mod));
+    return rcpp_result_gen;
+END_RCPP
+}
+// biv_normal_cdf
+double biv_normal_cdf(double x0, double x1, double r12);
+RcppExport SEXP _Rprobit_biv_normal_cdf(SEXP x0SEXP, SEXP x1SEXP, SEXP r12SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x0(x0SEXP);
+    Rcpp::traits::input_parameter< double >::type x1(x1SEXP);
+    Rcpp::traits::input_parameter< double >::type r12(r12SEXP);
+    rcpp_result_gen = Rcpp::wrap(biv_normal_cdf(x0, x1, r12));
+    return rcpp_result_gen;
+END_RCPP
+}
+// biv_normal_pdf
+double biv_normal_pdf(double x0, double x1, double r12);
+RcppExport SEXP _Rprobit_biv_normal_pdf(SEXP x0SEXP, SEXP x1SEXP, SEXP r12SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x0(x0SEXP);
+    Rcpp::traits::input_parameter< double >::type x1(x1SEXP);
+    Rcpp::traits::input_parameter< double >::type r12(r12SEXP);
+    rcpp_result_gen = Rcpp::wrap(biv_normal_pdf(x0, x1, r12));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -568,9 +639,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rprobit_TVBS_pv2", (DL_FUNC) &_Rprobit_TVBS_pv2, 3},
     {"_Rprobit_TVBS_grad", (DL_FUNC) &_Rprobit_TVBS_grad, 3},
     {"_Rprobit_TVBS_hess_new", (DL_FUNC) &_Rprobit_TVBS_hess_new, 2},
+    {"_Rprobit_ll_macml_marginal", (DL_FUNC) &_Rprobit_ll_macml_marginal, 4},
     {"_Rprobit_ll_macml", (DL_FUNC) &_Rprobit_ll_macml, 4},
     {"_Rprobit_ll_probit", (DL_FUNC) &_Rprobit_ll_probit, 4},
+    {"_Rprobit_cal_choice_probs_1_nograd", (DL_FUNC) &_Rprobit_cal_choice_probs_1_nograd, 7},
     {"_Rprobit_pred_probit_approx", (DL_FUNC) &_Rprobit_pred_probit_approx, 4},
+    {"_Rprobit_ll_macml_LC", (DL_FUNC) &_Rprobit_ll_macml_LC, 4},
     {"_Rprobit_int2cats", (DL_FUNC) &_Rprobit_int2cats, 3},
     {"_Rprobit_ll_probit_person", (DL_FUNC) &_Rprobit_ll_probit_person, 5},
     {"_Rprobit_ll_probit_contrib_R", (DL_FUNC) &_Rprobit_ll_probit_contrib_R, 5},
@@ -581,6 +655,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rprobit_ll_macml_o", (DL_FUNC) &_Rprobit_ll_macml_o, 4},
     {"_Rprobit_prob_ordered", (DL_FUNC) &_Rprobit_prob_ordered, 6},
     {"_Rprobit_pred_probit_ordered_approx", (DL_FUNC) &_Rprobit_pred_probit_ordered_approx, 4},
+    {"_Rprobit_biv_normal_cdf", (DL_FUNC) &_Rprobit_biv_normal_cdf, 3},
+    {"_Rprobit_biv_normal_pdf", (DL_FUNC) &_Rprobit_biv_normal_pdf, 3},
     {"_Rprobit_Hess_pdf", (DL_FUNC) &_Rprobit_Hess_pdf, 3},
     {"_Rprobit_biv_gen_cdf", (DL_FUNC) &_Rprobit_biv_gen_cdf, 2},
     {"_Rprobit_grad_gen_cdf", (DL_FUNC) &_Rprobit_grad_gen_cdf, 2},

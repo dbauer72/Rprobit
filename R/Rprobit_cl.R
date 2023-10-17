@@ -140,7 +140,7 @@ Rprobit_cl <- R6::R6Class("Rprobit_cl",
         self$form <- NULL
       }
       self$re <- re
-      if (inherits(mod, "mod_cl")) {
+      if (inherits(mod, "mod_cl")||inherits(mod, "mod_latclass_cl")) {
         self$mod <- mod
       } else {
         self$mod <- NULL
@@ -214,10 +214,10 @@ Rprobit_cl <- R6::R6Class("Rprobit_cl",
     #' Set mod
     #' @param val object of class 'mod_cl'
     set_mod = function(val) {
-      if (inherits(val, "mod_cl")) {
+      if (inherits(val, "mod_cl")||inherits(mod, "mod_lat_class_cl")) {
         self$mod <- val
       } else {
-        cat("mod must be a mod_cl object.")
+        cat("mod must be a mod_cl or mod_latclass_cl object.")
       }
     },
 
@@ -367,7 +367,7 @@ Rprobit_cl <- R6::R6Class("Rprobit_cl",
     },
     
     #' @description
-    #' Set grad
+    #' Set gradEL
     #' @param val list
     set_gradEL = function(val) {
       #if (is.list(val) == TRUE) {
@@ -378,13 +378,13 @@ Rprobit_cl <- R6::R6Class("Rprobit_cl",
     },
 
     #' @description
-    #' Set grad
+    #' Set HessEL
     #' @param val list
     set_HessEL = function(val) {
       #if (is.list(val) == TRUE) {
       self$HessEL <- val
       #} else {
-      #  cat("gradEL must be a List.")
+      #  cat("HessEL must be a List.")
       #}
     },
 
@@ -408,11 +408,28 @@ Rprobit_cl <- R6::R6Class("Rprobit_cl",
       return(par$b)
     },
 
+    #' @description
+    #' provide plots for model (useful for latent class models)
+    #' @param dims 
+    #' vector of integers indicating the coordinates to be plotted. Only the first two integers are considered
+    #' @param cdf 
+    #' Boolean, indicating whether the cdf (TRUE) or the pdf (FALSE; default) should be plotted.  
+    #' @param margin
+    #' real; factor (0.1 = 10%; minimum default margin) to enlarge plotting area. 
+    plot = function(dims = 1, cdf = FALSE, margin = 0.1) {
+      plot_Rprobit(self, dims = dims, cdf = cdf, margin = margin)
+    },
 
     #' @description
     #' provide predictions for model contained in object.
-    predict = function() {
-      pr <- predict_Rprobit(self, data_new = self$data_raw, all_pred = TRUE)
+    #' @param newdata 
+    #' either a \code{\link{data_raw_cl}} object or a data frame. 
+    predict = function(newdata = NULL) {
+      data_new = self$data_raw$clone()
+      if (is.data.frame(newdata)){
+          data_new$set_df(newdata)
+        } 
+      pr <- predict_Rprobit(self, data_new = data_new, all_pred = TRUE)
       return(pr)
     },
 
@@ -436,22 +453,22 @@ Rprobit_cl <- R6::R6Class("Rprobit_cl",
     #' @description
     #' provide AIC value for model contained in object.
     AIC = function() {
-      if (is.null(self$theta)) {
-        out <- NA
-      } else {
+      #if (is.null(self$theta)) {
+      #  out <- NA
+      #} else {
         out <- -2 * self$ll + 2 * length(self$theta)
-      }
+      #}
       return(out)
     },
 
     #' @description
     #' provide BIC value for model contained in object. Sample size equal to N*T in balanced case
     BIC = function() {
-      if (is.null(self$theta)) {
-        out <- NA
-      } else {
+      #if (is.null(self$theta)) {
+      #  out <- NA
+      #} else {
         out <- -2 * self$ll + log(sum(self$data_raw$Tp)) * length(self$theta)
-      }
+      #}
       return(out)
     },
 

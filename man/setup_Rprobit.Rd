@@ -36,7 +36,7 @@ setup_Rprobit(
 
 \item{data_raw}{\code{data_raw}-object}
 
-\item{mod}{A \code{\link{mod_cl}} object.}
+\item{mod}{A \code{\link{mod_cl}} or \code{\link{mod_latclass_cl}} object.}
 
 \item{norm_alt}{An \code{integer} that labels the alternative which's utility is set to zero
 (for normalization).}

@@ -40,7 +40,11 @@ control_cl <- R6::R6Class("control_cl",
     #' @field control_weights
     #' A \code{list} of weights for the CML.
     control_weights = NULL,
-
+    
+    #' @field control_simulation
+    #' A \code{list} of instructions for data simulation.
+    control_simulation = NULL,
+    
     #' @field nCores
     #' An \code{integer}, the number of cores to use for parallel computation.
     nCores = 1,
@@ -66,13 +70,15 @@ control_cl <- R6::R6Class("control_cl",
     #' Boolean whether the empirical likelihood is employed
     #' @param control_weights
     #' a list of control weights
+    #' @param control_simulation
+    #' a list of control options for data simulation
     #' @param nCores
     #' number of cores to use for parallel calculation.
     #' @param normalize
     #' Boolean add a normalization of the regressors?
     initialize = function(
       control_nlm = list(), probit = TRUE, approx_method = "SJ", hess = FALSE,
-      pairs_list = NULL, el = FALSE, control_weights = NULL, nCores = 1,
+      pairs_list = NULL, el = FALSE, control_weights = NULL, control_simulation = NULL, nCores = 1,
       normalize = FALSE
     ) {
       stopifnot(is.list(control_nlm), is.logical(probit))
@@ -88,6 +94,7 @@ control_cl <- R6::R6Class("control_cl",
       self$pairs_list <- pairs_list
       self$el <- el
       self$control_weights <- control_weights
+      self$control_simulation <- control_simulation
       self$nCores <- nCores
       self$normalize <- normalize
     },

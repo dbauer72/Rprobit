@@ -1,8 +1,8 @@
 Package: Rprobit
 Type: Package
 Title: Estimation of Multinomial Probit Models
-Version: 0.3.0
-Date: 2022-12-22
+Version: 0.3.1
+Date: 2023-07-17
 Authors@R: c(
     person(given = "Dietmar", 
            family = "Bauer", 

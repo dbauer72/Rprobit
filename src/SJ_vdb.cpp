@@ -140,7 +140,6 @@ Eigen::MatrixXd Omega(Eigen::VectorXd x,Eigen::MatrixXd r)
 //' nxn correlation matrix.
 //' @return
 //' double; log of probability.
-//' @keywords internal
 //'
 // [[Rcpp::export]]
 double SJ(Eigen::VectorXd x, Eigen::MatrixXd r)
@@ -564,7 +563,6 @@ List dOmega(Eigen::VectorXd x,Eigen::MatrixXd r) // calculates the gradient of O
 //' nxn correlation matrix.
 //' @return
 //' vector; gradient of log of probability.
-//' @keywords internal
 //'
 // [[Rcpp::export]]
 Eigen::VectorXd dlcond(Eigen::VectorXd x,Eigen::MatrixXd r) // calculates the gradient of Omega.

@@ -160,10 +160,22 @@ double TVBS_biv_std_norm_pdf(Eigen::VectorXd x, double rho)                 // c
   return exp(-(pow(x(0),2) - 2*rho*x(0)*x(1) + pow(x(1),2))/(2*(1.0-pow(rho,2))))/( 2*pi_global*sqrt(1.0-pow(rho,2)) );
 }
 
-
+//' biv_normal_cdf
+//' @description
+//' The function computes the bivariate Gaussian CDF. 
+//' @param w0
+//' double; x-coordinate 
+//' @param w1
+//' double; y-coordinate 
+//' @param rho
+//' double; correlation
+//' @return 
+//' double; cdf 
+//' @keywords internal
+//'
+// [[Rcpp::export]]
 double biv_normal_cdf(double x0, double x1, double r12)                                 // create a function for the standard normal probability distribution function
 {
-  
   
   double cd = 0;
   if (r12>1-tol){ r12 = 1-tol;}
@@ -180,7 +192,20 @@ double biv_normal_cdf(double x0, double x1, double r12)                         
   
 }
 
-
+//' biv_normal_pdf
+//' @description
+//' The function computes the bivariate Gaussian PDF. 
+//' @param w0
+//' double; x-coordinate 
+//' @param w1
+//' double; y-coordinate 
+//' @param rho
+//' double; correlation
+//' @return 
+//' double; pdf 
+//' @keywords internal
+//'
+// [[Rcpp::export]]
 double biv_normal_pdf(double x0, double x1, double r12)                                 // create a function for the standard normal probability distribution function
 {
   static const double inv_2pi = 0.1591549;  /* 1/(2pi) */ 

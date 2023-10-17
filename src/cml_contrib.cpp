@@ -60,7 +60,7 @@ Contrib ll_probit_contrib(Rcpp::List X_n, Eigen::VectorXd y_n, Eigen::VectorXd t
   // UNPACK MODEL SPEC
   //............................................................//
 
-  int N = mod["N"];
+  //int N = mod["N"];
   int lthb = mod["lthb"];
   int lthO = mod["lthO"];
   int lthL = mod["lthL"];

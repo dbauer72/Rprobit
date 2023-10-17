@@ -29,6 +29,9 @@ data_cl <- R6::R6Class("data_cl",
   public = list(
     #' @field data list containing the data in regressor form
     data = list(),
+    #' @field class_member list  membership for latent classes 
+    class_member = list(), 
+    
     #' @field ordered Boolean indicating if choices are ordered.
     ordered = FALSE,
     #' @field vars string array containing the names of the regressor variables.
@@ -65,6 +68,16 @@ data_cl <- R6::R6Class("data_cl",
         }
       } else {
         cat("data must be a list.")
+      }
+    },
+    #' @description
+    #' Set class_member
+    #' @param val list
+    set_class_member = function(val) {
+      if (is.list(val)) {
+        self$class_member <- val
+      } else {
+        cat("class_member must be a list.")
       }
     },
     #' @description

@@ -1840,6 +1840,141 @@ Eigen::VectorXd grad_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::M
   return grad;
 }
 
+Eigen::MatrixXd hess_ordered_CML_approx(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd Lambda, int alt, Eigen::VectorXd dtauk, int cml_pair_type){
+  
+  // calculate the number of parameters. 
+  int Tp_n= xb.size();
+  
+  int n_par = Tp_n + Tp_n*(Tp_n+1)/2 + alt-1;
+  int np = n_par - alt+1;
+  
+  Eigen::VectorXd grad(n_par);
+  grad.setZero();
+  
+  Eigen::MatrixXd hess(n_par,n_par);
+  hess.setZero();
+  
+  double pr = 0;
+  
+  // tauk's. 
+  Eigen::VectorXd tauk(alt-1),edtauk(alt-1);
+  tauk.setZero();
+  edtauk.setZero();
+  edtauk(0)=1.0; 
+  
+  tauk(0) = dtauk(0);
+  for (int j=1;j<alt-1;j++){
+    edtauk(j) = std::exp(dtauk(j));
+    tauk(j)=tauk(j-1)+edtauk(j);
+  }
+  
+  // normalize variance matrix 
+  Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
+  Eigen::MatrixXd lambda_t = lambda.transpose();
+  
+  //............................................................//
+  // Normalize upper limits and covariance matrix (to correlation matrix)
+  //............................................................//
+  
+  Eigen::VectorXd x_norm = xb.array()/lambda.array();
+  Eigen::MatrixXd lambda_li_lj = lambda*lambda_t;
+  Eigen::MatrixXd Lambda_cor = (Lambda.array()/lambda_li_lj.array()).matrix();
+  
+  int lth_pairs_n = (Tp_n-1)*Tp_n/2;
+  
+  // Define a matrix that allows to specify the pairs (possible extension to higher order CMLs)
+  Eigen::MatrixXd pairs_n;
+  int pairs_check = 0;
+  
+  // if there were no valid pairs for the decision maker, construct them
+  if(pairs_check==0){
+    Eigen::MatrixXd pairs_temp(lth_pairs_n,3);
+    pairs_temp.setOnes();
+    // if the pairs are not predefined, build them
+    int i_pair = 0;
+    for(int i_pair_0 = 0; i_pair_0 < (Tp_n-1); i_pair_0 ++){
+      for(int i_pair_1 = (i_pair_0+1);i_pair_1 < (Tp_n); i_pair_1 ++){
+        // first choice occasion of the pair
+        pairs_temp(i_pair,0) = i_pair_0;
+        // second choice occasion of the pair
+        pairs_temp(i_pair,1) = i_pair_1;
+        
+        // define the according weights to exclude undesired pairs
+        if(cml_pair_type == 1){
+          // for adjacent pairs looped:
+          if( !(((i_pair_0+1) == i_pair_1) || ((i_pair_0 == 0) && (i_pair_1 == (Tp_n-1)))) ){
+            pairs_temp(i_pair,2) = 0;
+          }
+        }
+        if(cml_pair_type == 2){
+          // for adjacent pairs chained
+          if( !((i_pair_0+1) == i_pair_1) ){
+            pairs_temp(i_pair,2) = 0;
+          }
+        }
+        i_pair++;
+      }
+    }
+    pairs_n = pairs_temp;
+    pairs_check = 1;
+  }
+  
+  for(int i_pair = 0; i_pair < lth_pairs_n; i_pair ++){
+    
+    // only calculate the pair if the weight is !=0
+    if(pairs_n(i_pair,2)!=0){
+      grad.setZero();
+      
+      // get the two coordinates 
+      int i_1= pairs_n(i_pair,0);
+      int i_2 = pairs_n(i_pair,1);
+      
+      Eigen::VectorXd yp(2);
+      yp(0)= y(i_1);
+      yp(1) = y(i_2);
+      
+      Eigen::VectorXd xbp(2);
+      xbp(0)= xb(i_1);
+      xbp(1)= xb(i_2);
+      
+      Eigen::MatrixXd Lambdap(2,2);
+      Lambdap.setZero();
+      Lambdap(0,0)= Lambda(i_1,i_1);
+      Lambdap(0,1)= Lambda(i_1,i_2);
+      Lambdap(1,0)= Lambda(i_2,i_1);
+      Lambdap(1,1)= Lambda(i_2,i_2);
+      
+      double prp = prob_ordered_2(xbp,yp,Lambdap,alt,dtauk);
+      
+      pr += prp;
+      
+      // gradient calculation 
+      Eigen::VectorXd gradp(5+alt-1);
+      gradp.setZero(); 
+      gradp = grad_po2(xbp,yp,Lambdap,alt,dtauk);
+      
+      // deriv due to xb. 
+      grad(i_1) += gradp(0);
+      grad(i_2) += gradp(1);
+      // deriv w.r.t. Lambda entries. 
+      int ind_i1i1 = i_1*Tp_n - i_1*(i_1-1)/2;
+      int ind_i2i2 = i_2*Tp_n - i_2*(i_2-1)/2;
+      int ind_i1i2 = ind_i1i1 + i_2-i_1;
+      
+      grad(Tp_n+ind_i1i1) += gradp(2);
+      grad(Tp_n+ind_i2i2) +=gradp(3);
+      grad(Tp_n+ind_i1i2) +=gradp(4);
+      grad.segment(np,alt-1) += gradp.segment(5,alt-1);
+      
+      // update the approximation of the Hessian
+      hess += grad *grad.transpose();
+    }
+  }
+  
+  // return value. 
+  return hess;
+}
+
 Eigen::MatrixXd hess_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd Lambda, int alt, Eigen::VectorXd dtauk, int cml_pair_type){
   
   // calculate the number of parameters. 

@@ -17,4 +17,3 @@ double; log of probability.
 \description{
 The function computes the  CDF for a multivariate Gaussian distribution according to the method of Solow-Joe.
 }
-\keyword{internal}

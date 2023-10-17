@@ -249,7 +249,7 @@ test_that("test #8: same as test 7, probit  estimation", {
   )
   RNGkind(sample.kind = "Rejection")
   set.seed(1)
-  control_simul = list(Tp = sample(1:3, 1000, replace = TRUE))
+  control_simul = list(Tp = sample(1:3, 2000, replace = TRUE))
   est <- suppressMessages(
     run_mini_example(
       form = form,
@@ -455,6 +455,7 @@ test_that("test #15: ordered probit, estimated using the CML approach", {
   mod$HL <- HL
   mod$fL <- matrix(0,6,1)
   control_simul <- list(Tp = rep(3,1000))
+  control <- list(control_simulation = control_simul)
   re <- c()
   est <- suppressMessages(
     run_mini_example(
@@ -476,7 +477,7 @@ test_that("test #15: ordered probit, estimated using the CML approach", {
   expect_snapshot(round(est[[1]], 2))
 })
 
-test_that("test #16: same as test 11, probit estimation", {
+test_that("test #16: same as test 15, probit estimation", {
   form <-  choice ~ 0 |V1 + V2 | 0
   mod <- mod_cl$new(
     Hb   = diag(2)[,-1,drop=FALSE],
@@ -493,6 +494,7 @@ test_that("test #16: same as test 11, probit estimation", {
   mod$HL <- HL
   mod$fL <- matrix(0,6,1)
   control_simul <- list(Tp = rep(3,1000))
+  control <- list(control_simulation = control_simul)
   re <- c()
   est <- suppressMessages(
     run_mini_example(

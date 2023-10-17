@@ -1,0 +1,255 @@
+---
+title: "Latent Class Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Latent Class Models}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+bibliography: ref.bib
+link-citations: yes  
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "img/",
+  fig.align = "center",
+  fig.dim = c(8, 6), 
+  out.width = "75%"
+)
+library("Rprobit")
+```
+
+This vignette describes the usage of **Rprobit** for the estimation of latent class models. 
+
+## Model definition
+Latent class models build on the idea that different deciders have different preferences corresponding to different parameter vectors. The whole population of deciders can be partitioned into classes (groups) of deciders with more homogeneous preferences than the whole population. The term 'latent' here refers to the fact that the modeler does not know which individuals fall into which class. 
+
+In the simplest version of the model each class $C_k, k=1,...,K$ of deciders shares one parameter vector $\beta$ encoding the preferences prevalent in that group. If one would know the class membership then a 
+probit model could be estimated for each class separately. Assuming that deciders are drawn randomly from 
+an underlying population in which the class membership is distributed multinomially with frequencies 
+$\pi_k, k=1,...,K,$ the number of members in each class tends to infinity for sample size tending to 
+infinity. 
+Thus one can expect consistent estimation of the preference vectors $\beta_k, k=1,...,K,$ for each class, if the class membership would be known. The utility then is of the form (in the model formulation where all variables have been transformed to type 1 variables):
+
+```{=tex}
+\begin{equation}
+  U_{ntj} = X_{ntj}'\beta_k + \epsilon_{ntj}
+\end{equation}
+```
+
+In that case the probability that decider $i$ in class $k$ chooses alternative $j$ for regressor matrix $X_{nt.}$ can be written as
+
+```{=tex}
+\begin{equation}
+  P(y_{nt} = j |X_{nt.}; \beta_k) = p_{nt}(\beta_k)
+\end{equation}
+```
+
+Typically, however, the modeler does not have access to this information. It may nevertheless seem reasonable to assume that class membership is independent of all regressor variables and hence can be treated as a random effect. The class membership then can be marginalized out: 
+
+```{=tex}
+\begin{equation}
+  P(y_{nt} = j |X_{nt.}; \beta_1,...,\beta_K, \pi_1,...,\pi_K) = \sum_{k=1}^K \pi_k p_{nt}(\beta_k).
+\end{equation}
+```
+
+Two choices from the same decider are related via identical preference vector $\beta_k$. 
+This leads to joint choice probabilities depending on the parameters $\beta_k, k=^1,...,K$ and parameters for the class membership percentages $\pi_k$.
+
+We model the class membership percentages using a logistic function:
+
+ ```{=tex}
+\begin{equation}
+  \pi_k(\gamma_1,...,\gamma_K) = \frac{\exp(\gamma_k)}{\sum_{j=1}^K \exp(\gamma_j)}.
+\end{equation}
+```
+For identification we set $\gamma_1=0$ without restriction of generality. 
+
+Since the labels for the classes are arbitrary we order them such that $\pi_k \ge \pi_{k+1}$ and thus the largest classes come first. Consequently we have $\gamma_k \le 0$.  
+
+Technically we represent the models using a class **mod_latclass_cl** that extends the class **mod_cl**. It has the additional field *num_class* representing $K$.
+
+## Estimation using the EM algorithm
+Latent class models can be estimated either using the EM algorithm or explicit maximum likelihood 
+estimation. 
+
+Our implementation of the EM (expectation maximization) algorithm is conceived for the setting where each class corresponds to one non-random parameter vector $\beta_k$. 
+It uses the fact that in this setting given the class membership of a person the choice probabilities are independent of each other. Thus the joint choice probability can be calculated as the sum of the marginal probabilities. Thus in this case the **MACML** criterion function and the full probit likelihood are identical. 
+
+The EM algorithm then uses the idea that if one observes a panel data set and thus for each decider a number of choices -- which for given preferences are assumed to independent -- then we can guess into which class a decider falls. The corresponding conditional probabilities form the E-step. Using these weights then the M-step maximizes the preference vector $\beta_k$ for class $k$. For the new optimal $\beta_k$ the conditional expectations can be adjusted leading to the following iterative algorithm: 
+
+-   Initialization
+-   E-step: calculate the conditional class membership probabilities for each decider and each class
+-   Choose a class $k$ and a number of maximal iterations 
+-   M-step: for given class membership probabilities perform the likelihood for the chosen class $k$ with weights given by the class membership probabilities the chosen number of optimization iterations.
+-   Iterate the above steps until convergence or the maximum number of iterations is used up. 
+
+The function **fit_LC_EM_Rprobit** implements this algorithm. As the input one has to specify the number of classes $K$ to be estimated. 
+
+## Estimation using CML maximization 
+Beside the EM algorithm also 'brute force' maximization of the likelihood or the CML function can be executed. Since the choice probabilities are given as functions of the full parameter vector numeric optimization can be tried. 
+
+Note, however, that for a sizable number of classes the parameter vector will be large. Also close classes may lead to numerical problems. 
+
+As an advantage note that this approach also can be performed when adding random components to the preference vector. In this case the underlying mixing distribution is not the sum of point masses but a mixture of Gaussians which potentially achieves better approximation properties for continuously mixed preference vector. 
+
+The function **fit_LC_Rprobit** implements this algorithm. As the input one has to specify the number of
+classes $K$ to be estimated. Here a full model including the $\Omega$ matrix for normally mixed parameters 
+also within each class can be specified. $\Omega$ can also be chosen identical for each component to improve estimation speed. 
+
+## Example with simulated data 
+The functionality of the estimation of latent class models can be demonstrated using a simulated example with 500 deciders each taking five decisions between $J=3$ alternatives. The alternatives are characterized using two independent iid standard normally distributed regressors. 
+
+The corresponding parameter vector $\beta$ has two unrestricted entries, that are chosen from three classes as $\beta_1 = [2,0], \beta_2 = [0,2], \beta_3 = [2,2]$. Class membership is allocated randomly with a relative share of one third in each class. 
+
+There are no random effects ($\Omega = 0$) and the variance of the error term equals the identity ($\Sigma = I_3$). 
+
+The following code sets up the model using the class **mod_latclass_cl**: 
+
+```{r, echo = FALSE}
+form <- choice ~ V1 + V2 | 0
+re <- c()
+mod <- mod_latclass_cl$new(
+  Hb   = diag(2),
+  fb   = as.matrix(c(0,0),ncol=1),
+  HO   = matrix(0,0,0),
+  fO   = matrix(0,0,0),
+  HL   = matrix(0,6,0),
+  fL   = matrix(0,6,1),
+  ordered = FALSE,
+)
+mod$fL[c(1,4,6),1]=1
+mod$num_class <- 3
+
+theta_0 = c(2,0,0,2,2,2,0,0)
+```
+
+After the model is defined, the data set is simulated : 
+
+```{r, echo = TRUE}
+control_simul = list(Tp = rep(5,500))
+
+# simulate data 
+Rprobit_obj <- setup_Rprobit(
+  form = form,
+  mod = mod,
+  re = re,
+  seed = 1,
+  theta_0 = theta_0,
+  control = control_simul
+)
+
+Rprobit_obj$control$probit <- FALSE
+Rprobit_obj$control$control_weights$cml_pair_type <- 0 # full pairwise CML function to be used.
+```
+
+First estimate a model without taking the latent classes into account. For this we need a new model that does not use the latent classes.  
+
+```{r, echo = TRUE}
+modc <- mod_cl$new(
+  Hb   = diag(2),
+  fb   = as.matrix(c(0,0),ncol=1),
+  HO   = matrix(0,0,0),
+  fO   = matrix(0,0,0),
+  HL   = matrix(0,6,0),
+  fL   = matrix(0,6,1),
+  ordered = FALSE,
+)
+modc$fL[c(1,4,6),1]=1
+
+# evaluate at true parameter vector 
+Rprobit_obj$mod <- modc
+
+Rp <- fit_Rprobit(Rprobit_obj, init_method = "random")
+summary(Rp) 
+```
+
+The estimated parameters are a compromise between the three groups. 
+
+Next we estimate a latent class model using the CML. We only have to replace the model without latent classes by the original model including latent classes:   
+
+```{r, echo = FALSE}
+Rprobit_obj$control$el = 1
+Rprobit_obj$mod <- mod
+Rp2 <- fit_LC_Rprobit(Rprobit_obj,init_method = "random")
+summary(Rp2)
+```
+
+We can also estimate the model using the EM algorithm:
+
+```{r, echo = FALSE}
+Rprobit_obj$control$el = 1
+Rprobit_obj$mod <- mod
+Rp3 <- fit_LC_EM_Rprobit(Rprobit_obj,init_method = "random")
+summary(Rp3)
+```
+We can change the model to also include random effects with a fixed $\Omega$. Then only estimation with the CML is implemented: 
+
+```{r, echo = FALSE}
+modc <- mod_latclass_cl$new(
+  Hb   = diag(2),
+  fb   = as.matrix(c(0,0),ncol=1),
+  HO   = matrix(0,1,0),
+  fO   = matrix(0.25,1,1),
+  HL   = matrix(0,6,0),
+  fL   = matrix(0,6,1),
+  ordered = FALSE,
+)
+modc$fL[c(1,4,6),1]=1
+modc$num_class <- 3
+
+# add first variable to list of random effects. 
+Rprobit_obj$re <- c("V1")
+
+# evaluate at true parameter vector 
+Rprobit_obj$mod <- modc
+
+Rp4 <- fit_LC_Rprobit(Rprobit_obj, init_method = "random")
+summary(Rp4)
+```
+
+Beside the textual output we can also visualize the estimated systems. First the system without random classes:
+
+```{r, echo = FALSE}
+plot(Rp,dims = c(1,2))
+```
+
+Next the estimates without random effects:
+
+```{r, echo = FALSE}
+plot(Rp2,dims = c(1,2))
+plot(Rp3,dims = c(1,2))
+```
+The plot for the estimate including random effects looks differently: 
+
+```{r, echo = FALSE}
+plot(Rp4,dims = c(1))
+```
+This plots the pdf. In some case we might want to visualize the CDF:
+
+```{r, echo = FALSE}
+plot(Rp4,dims = c(1),cdf=TRUE)
+```
+Maybe we do not want to zoom in that much: 
+
+```{r, echo = FALSE}
+plot(Rp4,dims = c(1), cdf= TRUE,margin = 0.5)
+```
+Since we only have random effects for the first component of $\beta$, only the cdf plot for both components is revealing: 
+
+```{r, echo = FALSE}
+plot(Rp4,dims = c(1,2))
+plot(Rp4,dims = c(1,2), cdf= TRUE)
+```
+
+## Initialization of the Estimation 
+In both cases (for CML maximization and the EM algorithm) it is necessary to provide the numerical search with an initial guess. Both functions can use fixed initialization (**init_method = 'theta'**) or random initialization (**init_method = 'random'**).
+
+Additionally a smarter initialization method is provided using **init_method = 'kmeans'**: This uses the fact that a joint model not including the latent classes will provide a compromise between all preferences. The gradient for each decider then will tend to point towards the preference vector for this decider. Thus clustering the gradients into $K$ classes should mirror the class memberships. 
+
+Once the set of all deciders is split into $K$ classes, for each class a separate model is estimated not including the mixing (which hence can be done relatively fast). The corresponding values provide the initial estimates. 
+

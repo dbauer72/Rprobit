@@ -28,13 +28,31 @@
 
 summary.Rprobit_cl <- function(object, denormalise = TRUE, ...) {
 
+  LC_model = FALSE
   ### build model parameters
-  par <- build_par_from_mod(
-    theta = object$theta,
-    mod = object$mod,
-    variances = object$vv
-  )
-
+  if (!is.null(object$mod$num_class)){
+    LC_model = TRUE
+    num_class <- object$mod$num_class
+    par_all <- list(num_class)
+    mod <- object$mod
+    for (j in 1:num_class){
+        param_one <- mod$lthb + mod$lthO + mod$lthL 
+        ind_j <- (j-1)*param_one+c(1:param_one)
+        par_all[[j]] <- build_par_from_mod(object$theta[ind_j], mod, variances = object$vv[ind_j,ind_j])
+    }
+    pi_eta <- c(0,object$theta[num_class*param_one + c(1:(num_class-1))])
+    pi <- exp(pi_eta)/sum(exp(pi_eta))
+    ind_gam <- num_class*param_one + c(1:(num_class-1)) 
+    pi_V <- object$vv[ind_gam,ind_gam]
+    
+    par <- list( par_all = par_all,pi = pi, pi_V =  pi_V)
+  } else {
+    par <- build_par_from_mod(
+      theta = object$theta,
+      mod = object$mod,
+      variances = object$vv
+    )
+  }
   ### check if Omega matrix is available
   omega_present <- FALSE
   if (!any(is.na(object$mod$HO))) {
@@ -117,6 +135,7 @@ summary.Rprobit_cl <- function(object, denormalise = TRUE, ...) {
       "alt_names" = object$alt_names,
       "ordered" = object$mod$ordered,
       "par" = par,
+      "latent_class_model" = LC_model,
       "prediction_summary" = predict_Rprobit(object),
       "ll" = object$ll
     ),
@@ -144,6 +163,27 @@ print.summary.Rprobit_cl <- function(x, ...) {
   writeLines("")
 
   ### Model information
+  if (x$latent_class_model){
+    num_class <- length(x$par[[1]])
+    writeLines(paste("Latent class model with ",length(x$par[[1]])," classes."))
+    
+    writeLines("Class membership percentages:")
+    writeLines("pi =")
+    pi <- matrix(x$par[[2]],ncol=1)
+    # calculate variance of estimated percentages 
+    dpidgamma <- diag(as.vector(pi)) - pi %*% t(pi)
+    dpidgamma <- dpidgamma[,-1, drop = FALSE] 
+    V_pi <- dpidgamma %*% x$par$pi_V %*% t(dpidgamma)
+    
+    est_sd = cbind(t(pi), t(sqrt(diag(V_pi))))
+    
+    print_est_sd(
+      est_sd,
+      row_names = "Perc",
+      col_names = paste("Cl. ",1:num_class)
+    )
+    writeLines("")
+  }
   writeLines("U = X * beta + eps")
   if (x$omega_present) {
     writeLines("beta ~ MVN(b,Omega)")
@@ -155,43 +195,87 @@ print.summary.Rprobit_cl <- function(x, ...) {
   writeLines("b =")
 
   ### Parameter information
-  print_est_sd(
-    est_sd = cbind(x$par$b, if(is.null(x$par$b_sd)) x$par$b * NA else x$par$b_sd),
-    row_names = x$vars
-  )
-  writeLines("")
-  if (x$omega_present) {
-    writeLines("Omega =")
+  if (x$latent_class_model == FALSE){ 
+    # only one class, standard MNP model 
     print_est_sd(
-      est_sd = cbind(x$par$Omega, if(is.null(x$par$Omega_sd)) x$par$Omega * NA else x$par$Omega_sd),
+      est_sd = cbind(x$par$b, if(is.null(x$par$b_sd)) x$par$b * NA else x$par$b_sd),
+      row_names = x$vars
+    )
+    writeLines("")
+    if (x$omega_present) {
+      writeLines("Omega =")
+      print_est_sd(
+        est_sd = cbind(x$par$Omega, if(is.null(x$par$Omega_sd)) x$par$Omega * NA else x$par$Omega_sd),
+        row_names = x$vars,
+        col_names = x$vars
+      )
+      writeLines("")
+    }
+    writeLines("Sigma =")
+    if (x$ordered == FALSE) { 
+      print_est_sd(
+        est_sd = cbind(x$par$Sigma, if(is.null(x$par$Sigma_sd)) x$par$Sigma * NA else x$par$Sigma_sd),
+        row_names = x$alt_names,
+        col_names = x$alt_names
+      )
+    }
+    if (x$ordered) {
+      Tp <- dim(x$par$Sigma)[1]
+      print_est_sd(
+        est_sd = cbind(x$par$Sigma, if(is.null(x$par$Sigma_sd)) x$par$Sigma * NA else x$par$Sigma_sd),
+        row_names = 1:Tp,
+        col_names = 1:Tp
+      )
+      ### for ordered alternatives: print interval limits
+      writeLines("")
+      print_est_sd(
+        est_sd = matrix(c(x$par$tauk, x$par$tauk_sd), nrow = 1),
+        row_names = "tauk",
+        col_names = 1:length(x$par$tauk)
+      )
+    }
+  } else {
+    par_all <- x$par[[1]]
+    b_mat <- par_all[[1]]$b
+    for (j in 2:num_class){
+      b_mat <- cbind(b_mat,par_all[[j]]$b)
+    }
+    
+    b_mat <- cbind(b_mat,if(is.null(par_all[[1]]$b_sd)) par_all[[1]]$b * NA else par_all[[1]]$b_sd )
+    for (j in 2:num_class){
+      b_mat <- cbind(b_mat, if(is.null(par_all[[j]]$b_sd)) par_all[[j]]$b * NA else par_all[[j]]$b_sd )
+    }
+    
+    print_est_sd(
+      est_sd = cbind(b_mat),
       row_names = x$vars,
-      col_names = x$vars
+      col_names = paste("Cl. ",1:num_class)
     )
+    
     writeLines("")
-  }
-  writeLines("Sigma =")
-  print_est_sd(
-    est_sd = cbind(x$par$Sigma, if(is.null(x$par$Sigma_sd)) x$par$Sigma * NA else x$par$Sigma_sd),
-    row_names = x$alt_names,
-    col_names = x$alt_names
-  )
-  if (x$ordered) {
-    ### for ordered alternatives: print interval limits
-    writeLines("")
+    if (x$omega_present) {
+      writeLines("Omega =")
+      print_est_sd(
+        est_sd = cbind(par_all[[1]]$Omega, if(is.null(par_all[[1]]$Omega_sd)) par_all[[1]]$Omega * NA else par_all[[1]]$Omega_sd),
+        row_names = x$vars,
+        col_names = x$vars
+      )
+      writeLines("")
+    }
+    writeLines("Sigma =")
     print_est_sd(
-      est_sd = matrix(c(x$par$tauk, x$par$tauk_sd), nrow = 1),
-      row_names = "tauk",
-      col_names = 1:length(x$par$tauk)
+      est_sd = cbind(par_all[[1]]$Sigma, if(is.null(par_all[[1]]$Sigma_sd)) par_all[[1]]$Sigma * NA else par_all[[1]]$Sigma_sd),
+      row_names = x$alt_names,
+      col_names = x$alt_names
     )
   }
-
   ### Prediction information
   writeLines("")
   print(x$prediction_summary)
 
   ### Log-likelihood value
   writeLines("")
-  writeLines(sprintf("Log-likelihood: %f", x$ll))
+  writeLines(sprintf("Log-CML value: %f", x$ll))
 
 }
 

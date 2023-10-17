@@ -30,14 +30,18 @@ build_par_from_mod <- function(theta, mod, variances = NA, labels = NULL) {
   ### build 'b' and calculate standard errors
   Hb <- mod$Hb
   fb <- mod$fb
-  b <- Hb %*% theta[1:mod$lthb] + fb
-  if (!any(is.na(variances))) {
-    vb <- Hb %*% variances[1:mod$lthb, 1:mod$lthb] %*% t(Hb)
-    b_sd <- sqrt(diag(vb))
+  if (mod$lthb>0){
+    b <- Hb %*% theta[1:mod$lthb] + fb
+    if (!any(is.na(variances))) {
+      vb <- Hb %*% variances[1:mod$lthb, 1:mod$lthb] %*% t(Hb)
+      b_sd <- sqrt(diag(vb))
+    } else {
+      b_sd <- NULL
+    }
   } else {
-    b_sd <- NULL
+    b <- fb
+    b_sd = NULL
   }
-
   ### build 'Omega' (0 entries for coefficients without random effect) and calculate standard errors
   lRE <- mod$lRE
   HO <- mod$HO

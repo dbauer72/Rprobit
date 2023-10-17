@@ -10,7 +10,7 @@
 #' @return \code{data_cl} object
 #' @keywords internal
 
-data_raw_to_data <- function(data_raw, allvars, choice, re, norm_alt, alt, ASC) {
+data_raw_to_data <- function(data_raw, allvars, choice, re, norm_alt, alt=0, ASC) {
 
   ### auxiliary function: create k x k identity matrix, cutting out the j-th column
   diagn <- function(k, j) if (j != 0) diag(k)[, -j] else diag(k)
@@ -28,8 +28,15 @@ data_raw_to_data <- function(data_raw, allvars, choice, re, norm_alt, alt, ASC) 
   }
 
   ### transform choice variable to numeric
-  #choice_levels <- levels(as.factor(data_raw$alt_names))
-  choice_levels <- data_raw$alt_names
+  choice_levels <- levels(as.factor(data_raw$alt_names))
+  
+  if (is.null(alt) == TRUE){
+    alt = 0
+  }
+  if (alt == 0){
+    alt = length(choice_levels)
+  }
+  #choice_levels <- data_raw$alt_names
   #choice_levels <- reorder(choice_levels, sort(as.numeric(choice_levels)))
   if(length(choice_levels)==0) choice_levels <- as.factor(1:alt)
   if(length(choice_levels)!=alt) choice_levels <- as.factor(1:alt)
@@ -44,11 +51,11 @@ data_raw_to_data <- function(data_raw, allvars, choice, re, norm_alt, alt, ASC) 
   N <- data_raw$N
   # Tp <- numeric(N)
   Tp <- data_raw$Tp
-  # if(is.numeric(data_raw[,choice])){
-  #  alt_names <- levels(1:alt
+  #if(is.numeric(data_raw[,choice])){
+  #  alt_names <- levels(as.factor(1:alt))
   # } else {
-  #  alt_names <- levels(data_raw[,choice])
-  # }
+  #  alt_names <- choice_levels #levels(data_raw[,choice])
+  #}
   alt_names <- choice_levels
 
   # convert norm_alt to numeric, if necessary
@@ -86,49 +93,158 @@ data_raw_to_data <- function(data_raw, allvars, choice, re, norm_alt, alt, ASC) 
       }
     }
   }
-  ### loop over decision makers
+  
+  ### find out the variable names and positions. 
+  # this is done for the first decider only 
+  n = 1
+  
+  data_raw_n <- data_raw$df[id_macml == ids[n], ]
+  Tp[n] <- dim(data_raw_n)[1]
+  yn <- data_raw_n[, choice]
+  Xn <- list()
+  t = 1
+  var_pos = 0
+  
+  #for (t in 1) {
+    Xnt <- data_raw_n[t, ]
+    Xnt_temp <- data.frame(remove_me = 1:alt)
+    
+    DD <- diagdiff(alt, norm_alt)
+    DN <- diagn(alt, norm_alt)
+    ### add all the alternative specific variables
+    for (i_var in allvars[[1]]) {
+      if (i_var != 0) {
+        old_col <- colnames(Xnt_temp)
+        lo = length(ord[[i_var]])
+        ### locate the relevant columns and compute difference w.r.t norm_alt, put covariates with random effects at the end
+        if (i_var %in% re) {
+          # Xnt_temp           <- cbind(diagdiff(alt, norm_alt)%*%t(as.vector(Xnt[, ord[[i_var]]])), Xnt_temp)
+          Xnt_temp <-  cbind(DD %*% t(Xnt[, ord[[i_var]], drop = FALSE]), Xnt_temp)
+          # Xnt_temp           <- cbind(diagdiff(alt, norm_alt)%*%t(as.vector(Xnt[, grep(paste0(i_var,"_"), colnames(Xnt))])), Xnt_temp)
+          
+          
+          colnames(Xnt_temp) <- c(i_var, old_col)
+          var_pos = c(var_pos+1,1)
+        } else {
+          # Xnt_temp           <- cbind(Xnt_temp, diagdiff(alt, norm_alt)%*%t(as.vector(Xnt[, ord[[i_var]]])) )
+          Xnt_temp <- cbind(Xnt_temp, DD %*% t(Xnt[, ord[[i_var]], drop = FALSE]))
+          # Xnt_temp           <- cbind(Xnt_temp,diagdiff(alt, norm_alt)%*%t(as.vector(Xnt[, grep(paste0(i_var, "_"), colnames(Xnt))])))
+          colnames(Xnt_temp) <- c(old_col, i_var)
+          max_var_pos <- if(length(var_pos)==0) 0 else max(var_pos)
+          var_pos = c(var_pos,max_var_pos+1)
+        }
+      }
+    }
+    
+    ### add all the non-alternative specific variables
+    for (i_var in allvars[[2]]) {
+      if (i_var != 0) {
+        old_col <- colnames(Xnt_temp)
+        lo = length(alt_names)
+        ### remove one regressor (wrt norm_alt), put covariates with random effects at the front
+        if (i_var %in% re) {
+          Xnt_temp <- cbind(DN * Xnt[, i_var], Xnt_temp)
+          colnames(Xnt_temp) <- c(paste0(i_var, "_", alt_names), old_col)
+          var_pos = c(var_pos+lo,1:lo)
+        } else {
+          Xnt_temp <- cbind(Xnt_temp, DN * Xnt[, i_var])
+          colnames(Xnt_temp) <- c(old_col, paste0(i_var, "_", alt_names))
+          var_pos = c(var_pos,max(var_pos)+c(1:lo))
+        }
+      }
+    }
+    
+    ### add all the alternative specific variables with alternative specific coefficient
+    
+    
+    for (i_var in allvars[[3]]) {
+      if (i_var != 0) {
+        old_col <- colnames(Xnt_temp)
+        lo = length(ord[[i_var]])
+        ### put covariates with random effects at the front
+        if (i_var %in% re) {
+          Xnt_temp <- cbind(diag(as.vector(Xnt[, ord[[i_var]]])), Xnt_temp)
+          # Xnt_temp           <- cbind(diag(as.vector(Xnt[, grep(paste0(i_var, "_"), colnames(Xnt))])), Xnt_temp)
+          colnames(Xnt_temp) <- c(paste0(i_var, "_", choice_levels), old_col)
+          var_pos = c(var_pos+lo,1:lo)
+        } else {
+          Xnt_temp <- cbind(Xnt_temp, diag(as.vector(Xnt[, ord[[i_var]]])))
+          # Xnt_temp           <- cbind(Xnt_temp, diag(as.vector(Xnt[, grep(paste0(i_var, "_"), colnames(Xnt))])))
+          colnames(Xnt_temp) <- c(old_col, paste0(i_var, "_", choice_levels))
+          var_pos = c(var_pos,max(var_pos)+c(1:lo))
+        }
+      }
+    }
+    
+    ### add alternative specific constants
+    if (ASC) {
+      old_col <- colnames(Xnt_temp)
+      lo = length(alt_names)
+      if ("ASC" %in% re) {
+        Xnt_temp <- cbind(DN, Xnt_temp)
+        colnames(Xnt_temp) <- c(paste0("ASC", "_", alt_names), old_col)
+        var_pos = c(var_pos+lo,1:lo)
+      } else {
+        Xnt_temp <- cbind(Xnt_temp,DN)
+        colnames(Xnt_temp) <- c(old_col, paste0("ASC", "_", alt_names))
+        var_pos = c(var_pos,max(var_pos)+c(1:lo))
+      }
+    }
+    
+    Xnt_temp <- Xnt_temp[, !colnames(Xnt_temp) == "remove_me"]
+    col_names_tot <- colnames(Xnt_temp)
+
+    var_pos = var_pos[-1]
+    
+    ### loop over decision makers
   for (n in 1:N) {
     data_raw_n <- data_raw$df[id_macml == ids[n], ]
     Tp[n] <- dim(data_raw_n)[1]
     yn <- data_raw_n[, choice]
-    Xn <- list()
+    Xn <- list(Tp[n])
 
     ### loop over choice occasions
     for (t in 1:Tp[n]) {
       Xnt <- data_raw_n[t, ]
-      Xnt_temp <- data.frame(remove_me = 1:alt)
-
+      
+      Xnt_temp <- matrix(NA,alt,length(col_names_tot))
+      #colnames(Xnt_temp) <- col_names_tot
+      cur = 1
       ### add all the alternative specific variables
       for (i_var in allvars[[1]]) {
         if (i_var != 0) {
-          old_col <- colnames(Xnt_temp)
+          #old_col <- colnames(Xnt_temp)
           ### locate the relevant columns and compute difference w.r.t norm_alt, put covariates with random effects at the end
-          if (i_var %in% re) {
+          #if (i_var %in% re) {
             # Xnt_temp           <- cbind(diagdiff(alt, norm_alt)%*%t(as.vector(Xnt[, ord[[i_var]]])), Xnt_temp)
-            Xnt_temp <- cbind(diagdiff(alt, norm_alt) %*% t(Xnt[, ord[[i_var]], drop = FALSE]), Xnt_temp)
+            # Xnt_temp <- cbind(diagdiff(alt, norm_alt) %*% t(Xnt[, ord[[i_var]], drop = FALSE]), Xnt_temp)
+            Xnt_temp[,var_pos[cur]] <- DD %*% t(Xnt[, ord[[i_var]], drop = FALSE])
+            cur = cur+1
             # Xnt_temp           <- cbind(diagdiff(alt, norm_alt)%*%t(as.vector(Xnt[, grep(paste0(i_var,"_"), colnames(Xnt))])), Xnt_temp)
-            colnames(Xnt_temp) <- c(i_var, old_col)
-          } else {
+          #  colnames(Xnt_temp) <- c(i_var, old_col)
+          #} else {
             # Xnt_temp           <- cbind(Xnt_temp, diagdiff(alt, norm_alt)%*%t(as.vector(Xnt[, ord[[i_var]]])) )
-            Xnt_temp <- cbind(Xnt_temp, diagdiff(alt, norm_alt) %*% t(Xnt[, ord[[i_var]], drop = FALSE]))
+          #  Xnt_temp <- cbind(Xnt_temp, diagdiff(alt, norm_alt) %*% t(Xnt[, ord[[i_var]], drop = FALSE]))
             # Xnt_temp           <- cbind(Xnt_temp,diagdiff(alt, norm_alt)%*%t(as.vector(Xnt[, grep(paste0(i_var, "_"), colnames(Xnt))])))
-            colnames(Xnt_temp) <- c(old_col, i_var)
-          }
+          #  colnames(Xnt_temp) <- c(old_col, i_var)
+          #}
         }
       }
 
       ### add all the non-alternative specific variables
       for (i_var in allvars[[2]]) {
         if (i_var != 0) {
-          old_col <- colnames(Xnt_temp)
+          #old_col <- colnames(Xnt_temp)
           ### remove one regressor (wrt norm_alt), put covariates with random effects at the front
-          if (i_var %in% re) {
-            Xnt_temp <- cbind(diagn(alt, norm_alt) * Xnt[, i_var], Xnt_temp)
-            colnames(Xnt_temp) <- c(paste0(i_var, "_", alt_names), old_col)
-          } else {
-            Xnt_temp <- cbind(Xnt_temp, diagn(alt, norm_alt) * Xnt[, i_var])
-            colnames(Xnt_temp) <- c(old_col, paste0(i_var, "_", alt_names))
-          }
+          #if (i_var %in% re) {
+          lo = length(alt_names)
+          Xnt_temp[,var_pos[cur+ c(0:(lo-1))]] <- DN * Xnt[, i_var] #cbind(diagn(alt, norm_alt) * Xnt[, i_var], Xnt_temp)
+          cur = cur+lo
+          #  colnames(Xnt_temp) <- c(paste0(i_var, "_", alt_names), old_col)
+          #} else {
+          #  Xnt_temp <- cbind(Xnt_temp, diagn(alt, norm_alt) * Xnt[, i_var])
+          #  colnames(Xnt_temp) <- c(old_col, paste0(i_var, "_", alt_names))
+          #}
         }
       }
 
@@ -137,34 +253,40 @@ data_raw_to_data <- function(data_raw, allvars, choice, re, norm_alt, alt, ASC) 
 
       for (i_var in allvars[[3]]) {
         if (i_var != 0) {
-          old_col <- colnames(Xnt_temp)
+          #old_col <- colnames(Xnt_temp)
+          lo = length(choice_levels)
           ### put covariates with random effects at the front
-          if (i_var %in% re) {
-            Xnt_temp <- cbind(diag(as.vector(Xnt[, ord[[i_var]]])), Xnt_temp)
-            # Xnt_temp           <- cbind(diag(as.vector(Xnt[, grep(paste0(i_var, "_"), colnames(Xnt))])), Xnt_temp)
-            colnames(Xnt_temp) <- c(paste0(i_var, "_", choice_levels), old_col)
-          } else {
-            Xnt_temp <- cbind(Xnt_temp, diag(as.vector(Xnt[, ord[[i_var]]])))
-            # Xnt_temp           <- cbind(Xnt_temp, diag(as.vector(Xnt[, grep(paste0(i_var, "_"), colnames(Xnt))])))
-            colnames(Xnt_temp) <- c(old_col, paste0(i_var, "_", choice_levels))
-          }
+          #if (i_var %in% re) {
+          Xnt_temp[,var_pos[cur+ c(0:(lo-1))]] <- diag(as.vector(Xnt[, ord[[i_var]]]))    #    cbind(diag(as.vector(Xnt[, ord[[i_var]]])), Xnt_temp)
+          cur = cur+lo
+          # Xnt_temp           <- cbind(diag(as.vector(Xnt[, grep(paste0(i_var, "_"), colnames(Xnt))])), Xnt_temp)
+          #  colnames(Xnt_temp) <- c(paste0(i_var, "_", choice_levels), old_col)
+          #} else {
+          #  Xnt_temp <- cbind(Xnt_temp, diag(as.vector(Xnt[, ord[[i_var]]])))
+          #  # Xnt_temp           <- cbind(Xnt_temp, diag(as.vector(Xnt[, grep(paste0(i_var, "_"), colnames(Xnt))])))
+          #  colnames(Xnt_temp) <- c(old_col, paste0(i_var, "_", choice_levels))
+          #}
         }
       }
 
       ### add alternative specific constants
       if (ASC) {
-        old_col <- colnames(Xnt_temp)
-        if ("ASC" %in% re) {
-          Xnt_temp <- cbind(diagn(alt, norm_alt), Xnt_temp)
-          colnames(Xnt_temp) <- c(paste0("ASC", "_", alt_names), old_col)
-        } else {
-          Xnt_temp <- cbind(Xnt_temp, diagn(alt, norm_alt))
-          colnames(Xnt_temp) <- c(old_col, paste0("ASC", "_", alt_names))
-        }
+        #old_col <- colnames(Xnt_temp)
+        #if ("ASC" %in% re) {
+        lo = alt-1
+        Xnt_temp[,var_pos[cur+ c(0:(lo-1))]] <- DN  # cbind(diagn(alt, norm_alt), Xnt_temp)
+        cur = cur+lo
+        #colnames(Xnt_temp) <- c(paste0("ASC", "_", alt_names), old_col)
+        #} else {
+        #  Xnt_temp <- cbind(Xnt_temp, diagn(alt, norm_alt))
+        #  colnames(Xnt_temp) <- c(old_col, paste0("ASC", "_", alt_names))
+        #}
       }
 
-      Xnt_temp <- Xnt_temp[, !colnames(Xnt_temp) == "remove_me"]
-      Xn[[t]] <- as.matrix(Xnt_temp)
+      #Xnt_temp <- Xnt_temp[, !colnames(Xnt_temp) == "remove_me"]
+      Xnt_df = data.frame(Xnt_temp)
+      colnames(Xnt_df) <- col_names_tot
+      Xn[[t]] <- Xnt_temp
     }
 
     data[[n]] <- list("X" = Xn, "y" = yn)
@@ -172,7 +294,7 @@ data_raw_to_data <- function(data_raw, allvars, choice, re, norm_alt, alt, ASC) 
 
   data <- data_cl$new(
     data = data,
-    vars = colnames(Xnt_temp),
+    vars = colnames(Xnt_df),
     ordered = data_raw$ordered
   )
 

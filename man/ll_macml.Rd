@@ -16,7 +16,9 @@ ll_macml(theta, data_obj, mod, control)
 \item{control}{Controls for the probit estimation.}
 }
 \value{
-A vector, containing the negative log-likelihood with attributes containing the gradient and (if specified in the controls) the Hessian.
+A vector, containing the negative log-likelihood with attributes containing the gradient and
+(if specified in the controls) the Hessian.
+For el==1 the log CML contribution as well as gradients for each decider is contained in the output.
 }
 \description{
 This function computes the composite marginal likelihood.

@@ -66,7 +66,7 @@ mod <- mod_cl$new(
   fO   = matrix(0,0,0),
   HL   = matrix(1,1,1),
   fL   = as.matrix(c(1,0,1),ncol=1),
-  alt  = 5,
+  alt  = 2,
   ordered = TRUE
 )
 

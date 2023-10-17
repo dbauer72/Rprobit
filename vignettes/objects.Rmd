@@ -212,7 +212,7 @@ conf_mat <- function(choice,pr){
   
   for (j in 1:N){
     pred_choice[j] =  which.max(pr[j,]) 
-    conf_mat[pred_choice[j],choice[j]] = conf_mat[pred_choice[j],choice[j]]  +1
+    conf_mat[choice[j],pred_choice[j]] = conf_mat[choice[j],pred_choice[j]]  +1
   }
   alt_names <- colnames(pr)
   colnames(conf_mat) <- alt_names
@@ -255,7 +255,6 @@ Then we need to set up the `Rprobit_obj` and pass it on to `fit_Rprobit` for est
 ```{r, echo = FALSE}
 form <- choice ~ wait+ avinc + gcost + vcost + travel | size | 0 
 Travel_Rprobit <- setup_Rprobit(form, data_raw=data_raw, norm_alt="car",re=c(), error_struc="full")
-Travel_Rprobit$data_raw$alt_names = c("air","bus","car","train") 
 Travel_Rprobit$data = NULL
 Travel_Rprobit$theta_0 = c(-0.06,0.02,0.03,-.04,-0.007,-0.5,-0.3,-0.025,3,2.7,2.7,0,0,1,0,1) 
 Travel_Rprobit$theta = Travel_Rprobit$theta_0
@@ -279,7 +278,6 @@ Travel_Rprobit$mod$Hb = Hb
 
 
 Travel_Rprobit$theta_0 = c(-0.05,0.013,0.04,-0.006,-0.53,-0.25,-0.16,3.6,3,2.9,1.3,0.88,-1,0.4,0.7)
-Travel_Rprobit$data_raw$alt_names = c("air","bus","car","train")
 Travel_Rprobit <- fit_Rprobit(Rprobit_obj = Travel_Rprobit,init_method = "theta")
 summary(Travel_Rprobit)
 

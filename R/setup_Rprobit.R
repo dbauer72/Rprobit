@@ -7,7 +7,7 @@
 #' @param data_raw
 #' \code{data_raw}-object
 #' @param mod
-#' A \code{\link{mod_cl}} object.
+#' A \code{\link{mod_cl}} or \code{\link{mod_latclass_cl}} object.
 #' @param norm_alt
 #' An \code{integer} that labels the alternative which's utility is set to zero
 #' (for normalization).
@@ -68,6 +68,7 @@ setup_Rprobit <- function(
     control_obj = control
   } else  {
     control_obj = control_cl$new()
+    control_obj$control_simulation <- control
   }
 
   ### check if data_raw or mod are specified
@@ -121,6 +122,9 @@ setup_Rprobit <- function(
       ### save submitted data_raw
       data_raw_0 = data_raw
     }
+    ### convert to data from data_raw
+    data <- data_raw_to_data(data_raw = data_raw_obj, allvars = allvars, choice = choice, re = re, norm_alt = norm_alt, alt = mod$alt, ASC = ASC)
+    
     ### check 'data_raw' and compute number of alternatives
     if (is.null(mod)) {
       mod <- mod_cl$new()
@@ -223,7 +227,7 @@ setup_Rprobit <- function(
       theta = theta_0,
       mod = mod,
       seed = seed,
-      control_simulation = control
+      control_simulation = control_obj$control_simulation
     )
     data_raw <- sim_data_raw_out$data_raw
     if (is.null(alt_names)) {
@@ -236,6 +240,9 @@ setup_Rprobit <- function(
 
     ### save simulated data_raw
     data_raw_0 <- data_raw
+    
+    ### save simulated data
+    data <-  sim_data_raw_out$data
   }
 
 
@@ -243,11 +250,11 @@ setup_Rprobit <- function(
 
   if (mod$ordered == FALSE) {
     data_raw_obj <- normalise_data(data_raw = data_raw_obj, normalisation = control_obj$normalize, allvars = allvars, ASC = ASC)
-    control_obj$normalize <- attr(x = data_raw, which = "normalisation")
+    control_obj$normalize <- attr(x = data_raw_obj, which = "normalisation")
 
 
     ### create 'data' from 'data_raw'
-    data = data_raw_to_data(data_raw = data_raw_obj, allvars = allvars, choice = choice, re = re, norm_alt = norm_alt, alt = mod$alt, ASC = ASC)
+    # data = data_raw_to_data(data_raw = data_raw_obj, allvars = allvars, choice = choice, re = re, norm_alt = norm_alt, alt = mod$alt, ASC = ASC)
   } else {
     # for ordered data there is no difference between data_raw and data
     data = data_cl$new(ordered = TRUE,vars = data_raw_obj$dec_char)

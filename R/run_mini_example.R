@@ -70,6 +70,8 @@ run_mini_example <- function(
   }
 
   ### create 'Rprobit_obj' object
+  control <- list(control_simulation = control_simul)
+  
   Rprobit_obj <- setup_Rprobit(
     form = form,
     mod = mod,
