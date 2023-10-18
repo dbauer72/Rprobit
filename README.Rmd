@@ -13,22 +13,23 @@ knitr::opts_chunk$set(
 library(Rprobit)
 ```
 
-# {Rprobit}: Estimation of Probit Models for discrete choice data (ordered and unordered choices) including the panel case. 
+# {Rprobit}: Estimation of Probit Models for discrete choice data (ordered and unordered choices) including the panel case.
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
-{Rprobit} implements the specification and estimation of multinomial probit models that are used in the context of discrete choice data sets. Thereby individuals (named deciders) decide between a finite number of distinct alternatives. Both the alternatives as well as the deciders may be characterized using some regressor variables that influence the choices. 
+{Rprobit} implements the specification and estimation of multinomial probit models that are used in the context of discrete choice data sets. Thereby individuals (named deciders) decide between a finite number of distinct alternatives. Both the alternatives as well as the deciders may be characterized using some regressor variables that influence the choices.
 
-The package includes code for the cross-sectional case where each decider takes only one choice as well as the panel case wherein deciders face a number of choice occasions. The number of choice occasions may vary among deciders as can the number of alternatives presented to them. 
+The package includes code for the cross-sectional case where each decider takes only one choice as well as the panel case wherein deciders face a number of choice occasions. The number of choice occasions may vary among deciders as can the number of alternatives presented to them.
 
-Multinomial probit models (MNP) represent one version of the random utility type models that assume that deciders take their decisions based on an underlying utility assigned to each alternative. The alternative with the highest utility is then chosen. The utilities are modelled as linear functions of the regressor variables. Individual heterogeneities in preferences can be modelled using the concept if mixing of parameters. {Rprobit} implements Gaussian mixing of the parameters. 
+Multinomial probit models (MNP) represent one version of the random utility type models that assume that deciders take their decisions based on an underlying utility assigned to each alternative. The alternative with the highest utility is then chosen. The utilities are modelled as linear functions of the regressor variables. Individual heterogeneities in preferences can be modelled using the concept if mixing of parameters. {Rprobit} implements Gaussian mixing of the parameters.
 
-Beside the classical MNP models for unordered choice data wherein each alternative is assigned a separate utility function {Rprobt} can also handle ordered choice situations wherein the alternatives are ordered such as the answers to survey questions or the amount of pieces bought from a product. In this case only one utility function per choice is modelled. 
+Beside the classical MNP models for unordered choice data wherein each alternative is assigned a separate utility function {Rprobt} can also handle ordered choice situations wherein the alternatives are ordered such as the answers to survey questions or the amount of pieces bought from a product. In this case only one utility function per choice is modelled.
 
 ## Installation
 
-You can install the released version of {RprobitB} from the ZIP file. 
+You can install the released version of {Rprobit} from the ZIP file.
 
 ## Documentation
 
