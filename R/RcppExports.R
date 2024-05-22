@@ -122,23 +122,6 @@ TVBS_p <- function(x_norm, Cor_mat, log_out = 0L) {
     .Call(`_Rprobit_TVBS_p`, x_norm, Cor_mat, log_out)
 }
 
-#' multivariate Gaussian CDF: calculates CDF up to four dimensions
-#' @description
-#' The function computes the  Gaussian CDF for 1, 2, 3 and four dimensional problems. 
-#' @param upper
-#' nx1 vector of points where to evaluate 
-#' @param mu
-#' nx1 vector; expectation
-#' @param Sigma
-#' nxn correlation matrix.
-#' @return 
-#' vector; gradient of log probability, double; (log of) probability. 
-#' @keywords internal
-#'
-TVBS_pmvnorm_cpp <- function(upper, mu, Sigma) {
-    .Call(`_Rprobit_TVBS_pmvnorm_cpp`, upper, mu, Sigma)
-}
-
 #' TVBS approximation to multivariate Gaussian CDF. 
 #' @description
 #' The function computes the  CDF for a multivariate Gaussian distribution according to the method of Chandra Bhat (TVBS). 
@@ -184,8 +167,8 @@ TVBS_pv2 <- function(x_norm, Cor_mat, log_out = 0L) {
 #' integer; probability or log of probability? 
 #' @return 
 #' vector; gradient of log probability, double; (log of) probability.
-#' @keywords internal  
-#'
+#' @keywords internal 
+#'  
 TVBS_grad <- function(x_norm, Cor_mat, log_out = 0L) {
     .Call(`_Rprobit_TVBS_grad`, x_norm, Cor_mat, log_out)
 }
@@ -203,6 +186,23 @@ TVBS_grad <- function(x_norm, Cor_mat, log_out = 0L) {
 #'
 TVBS_hess_new <- function(x_norm, Cor_mat) {
     .Call(`_Rprobit_TVBS_hess_new`, x_norm, Cor_mat)
+}
+
+#' multivariate Gaussian CDF: calculates CDF up to four dimensions
+#' @description
+#' The function computes the  Gaussian CDF for 1, 2, 3 and four dimensional problems. 
+#' @param upper
+#' nx1 vector of points where to evaluate 
+#' @param mu
+#' nx1 vector; expectation
+#' @param Sigma
+#' nxn correlation matrix.
+#' @return 
+#' vector; gradient of log probability, double; (log of) probability. 
+#' @keywords internal
+#'
+TVBS_pmvnorm_cpp <- function(upper, mu, Sigma) {
+    .Call(`_Rprobit_TVBS_pmvnorm_cpp`, upper, mu, Sigma)
 }
 
 #' Calculation of Approximated Composite Marginal Likelihood
@@ -271,10 +271,6 @@ ll_probit <- function(theta, data_obj, mod, control) {
     .Call(`_Rprobit_ll_probit`, theta, data_obj, mod, control)
 }
 
-cal_choice_probs_1_nograd <- function(X, alt, y1, b, Sigma, Omega, approx_method) {
-    .Call(`_Rprobit_cal_choice_probs_1_nograd`, X, alt, y1, b, Sigma, Omega, approx_method)
-}
-
 #' Choice probabilities for probit models
 #' @description
 #' Computes the approximate choice porbabilities for the probit case.
@@ -314,6 +310,29 @@ pred_probit_approx <- function(theta, data, mod, control) {
 #'
 ll_macml_LC <- function(theta, data_obj, mod, control) {
     .Call(`_Rprobit_ll_macml_LC`, theta, data_obj, mod, control)
+}
+
+#' Calculation of choice probabilities for non-parametric models.
+#'
+#' @description
+#' This function computes the choice probabilities for non-parametric models. Each component is not mixed and hence choice probabilities 
+#' relate to each single choice, no parameters are needed, as the grid points are specified in the model object.  
+#'
+#' @param data_obj
+#' data_cl object
+#' @param mod
+#' A mod_nonpara_cl object.
+#' @param control
+#' Controls for the probit estimation.
+#' @param cml_pair_type
+#' integer controls the probabilities calculated: -1: single choices, 0: all pairs, 1: adjacent pairs. 
+#'
+#' @return
+#' A matrix, containing the choice probabilities for each choice in the rows; for each grid point in the columns. 
+#' @export
+#'
+choice_probs_nonpara <- function(data_obj, mod, control, cml_pair_type) {
+    .Call(`_Rprobit_choice_probs_nonpara`, data_obj, mod, control, cml_pair_type)
 }
 
 #' providing categories for integers for cycling through upper and lower bounds
@@ -507,14 +526,335 @@ pred_probit_ordered_approx <- function(theta, Xn, yn, mod) {
     .Call(`_Rprobit_pred_probit_ordered_approx`, theta, Xn, yn, mod)
 }
 
+#' converts parameters to state space system matrices corresponding to AR system and returns a list to R. 
+#' @description
+#' Computes the state space system with output dimension 1 and state dimension lag, 
+#' corresponding to the parameters param for the AR process. Passes the parameters to the C++ code. 
+#' @param param 
+#' parameter vector
+#' @param lag
+#' integer; lag length. 
+#' @param grad_bool
+#' integer; if 0 the system is calculated, if non-zero the returned system is the derivative. The difference lies in entries fixed to one in the system which are zero for the derivative. 
+#' @param stationary 
+#' boolean; if true, the state is started at its stationary distribution, else at zero. 
+#' @return
+#' state_space_system as a list containing the system. 
+#' @export
+#'
+param_to_system_AR_R <- function(param, lag, grad_bool, stationary) {
+    .Call(`_Rprobit_param_to_system_AR_R`, param, lag, grad_bool, stationary)
+}
+
+#' build_system_from_model_R
+#' @description
+#' put evaluations back to R 
+#' @param theta
+#' parameter vector
+#' @param mod
+#' A \code{\link{mod_StSp_cl}} object.
+#' @param time 
+#' vector of observation times 
+#' @return
+#' a structure containing beta, Omega, Sigma.
+#' @export
+#'
+build_system_from_model_AR_R <- function(theta, mod, time) {
+    .Call(`_Rprobit_build_system_from_model_AR_R`, theta, mod, time)
+}
+
+#' build_derived_system_from_model_AR
+#' @description
+#' Calculates the model based on parameter vector theta and model structure mod
+#' @param theta
+#' parameter vector
+#' @param mod
+#' A \code{\link{mod_AR_cl}} object.
+#' @param time 
+#' vector of observation times 
+#' @param coord 
+#' integer, indicating with respect to which coordinate the derivative is taken
+#' @return
+#' matrix dGammaT of derivatives of covariances 
+#' @export
+#'
+build_derived_system_from_model_AR <- function(theta, mod, time, coord) {
+    .Call(`_Rprobit_build_derived_system_from_model_AR`, theta, mod, time, coord)
+}
+
+#' MACML function for ordered probit models
+#' @description
+#' Computes the approximate composite likelihood for the ordered probit case.
+#' @param theta
+#' parameter vector
+#' @param data_obj
+#' \link{data_cl} organised as a data_cl object containing (a) list with elements contains the nxk matrix X and the nx1 vector y (b) N number of deciders (c) number of choice situations per decider
+#' @param mod
+#' A \code{\link{mod_AR_cl}} object.
+#' @param control
+#' Controls for the ordered probit estimation.
+#' @return 
+#' A vector, containing the negative log-likelihood with attributes containing the gradient and (if specified in the controls) the Hessian.
+#' @export
+#'
+ll_macml_o_AR <- function(theta, data_obj, mod, control) {
+    .Call(`_Rprobit_ll_macml_o_AR`, theta, data_obj, mod, control)
+}
+
+#' Choice probabilities for ordered probit models
+#' @description
+#' Computes the approximate choice probabilities for the ordered probit case.
+#' @param theta
+#' parameter vector
+#' @param Xn
+#' matrix of regressors
+#' @param yn
+#' vector of responses
+#' @param mod
+#' A \code{\link{mod_cl}} object.
+#' @param time 
+#' vector of all observation times 
+#' @param quest 
+#' integer of most questions asked 
+#' @param timen
+#' vector of times when the n-th individual is observed. 
+#' @param questn
+#' vector of questions answered by the n-th individual. 
+#' 
+#' @return
+#' A matrix, containing the predicted choice probabilities for each choice marginally (ignoring correlations)
+#' 
+#' @export
+#'
+pred_probit_ordered_approx_AR <- function(theta, Xn, yn, mod, time, quest, timen, questn) {
+    .Call(`_Rprobit_pred_probit_ordered_approx_AR`, theta, Xn, yn, mod, time, quest, timen, questn)
+}
+
+#' build_system_from_model_R
+#' @description
+#' put evaluations back to R 
+#' @param theta
+#' parameter vector
+#' @param mod
+#' A \code{\link{mod_StSp_cl}} object.
+#' @param time 
+#' vector of observation times 
+#' @return
+#' a structure containing beta, Omega, Sigma.
+#' @export
+#'
+build_system_from_model_R <- function(theta, mod, time) {
+    .Call(`_Rprobit_build_system_from_model_R`, theta, mod, time)
+}
+
+#' build_derived_system_from_model
+#' @description
+#' Calculates the model based on parameter vector theta and model structure mod
+#' @param theta
+#' parameter vector
+#' @param mod
+#' A \code{\link{mod_StSp_cl}} object.
+#' @param time 
+#' vector of observation times 
+#' @param coord 
+#' integer, indicating with respect to which coordinate the derivative is taken
+#' @return
+#' matrix dGammaT of derivatives of covariances 
+#' @export
+#'
+build_derived_system_from_model <- function(theta, mod, time, coord) {
+    .Call(`_Rprobit_build_derived_system_from_model`, theta, mod, time, coord)
+}
+
+#' get_observation_indices
+#' @description
+#' Compares the time and question numbers from an observation with the maximal ones and returns a vector containing the indices of observations contained for the 
+#' individual. 
+#' @param time 
+#' vector of all observation times 
+#' @param quest
+#' integer of most questions asked 
+#' @param time_n
+#' vector of times when the n-th individual is observed. 
+#' @param quest_n
+#' vector of questions answered by the n-th individual. 
+#' 
+#' @return
+#' a vector including all the observed questions. 
+#' 
+#' @export
+#'
+get_observation_indices <- function(time, quest, time_n, quest_n) {
+    .Call(`_Rprobit_get_observation_indices`, time, quest, time_n, quest_n)
+}
+
+#' take out rows and columns 
+#' @description
+#' Extracts the submatrix Gamma(vec,vec).  
+#' @param Gam  
+#' matrix.  
+#' @param vec 
+#' vector indices.
+#'  
+#' @return
+#' a submatrix. 
+#' @keywords internal 
+subset <- function(Gam, vec) {
+    .Call(`_Rprobit_subset`, Gam, vec)
+}
+
+#' find indices for elimination of unwanted rows and columns
+#' @description
+#' Extracts the indices of the entries in the submatrix LSig (ind,ind).  
+#' @param n  
+#' integer; number of rows of large matrix   
+#' @param ind 
+#' vector indices.
+#'  
+#' @return
+#' an indicator matrix selecting the smaller matrix elements.
+#'  
+#' @export
+#'
+elim_ind <- function(n, ind) {
+    .Call(`_Rprobit_elim_ind`, n, ind)
+}
+
+#' MACML function for ordered probit models
+#' @description
+#' Computes the approximate composite likelihood for the ordered probit case.
+#' @param theta
+#' parameter vector
+#' @param data_obj
+#' \link{data_cl} organised as a data_cl object containing (a) list with elements contains the nxk matrix X and the nx1 vector y (b) N number of deciders (c) number of choice situations per decider
+#' @param mod
+#' A \code{\link{mod_cl}} object.
+#' @param control
+#' Controls for the ordered probit estimation.
+#' @return
+#' A vector, containing the negative log-likelihood with attributes containing the gradient and (if specified in the controls) the Hessian.
+#' @export
+#'
+ll_macml_o_StSp <- function(theta, data_obj, mod, control) {
+    .Call(`_Rprobit_ll_macml_o_StSp`, theta, data_obj, mod, control)
+}
+
+#' Choice probabilities for ordered probit models
+#' @description
+#' Computes the approximate choice probabilities for the ordered probit case.
+#' @param theta
+#' parameter vector
+#' @param Xn
+#' matrix of regressors
+#' @param yn
+#' vector of responses
+#' @param mod
+#' A \code{\link{mod_cl}} object.
+#' @param time 
+#' vector of all observation times 
+#' @param quest
+#' integer of most questions asked 
+#' @param timen
+#' vector of times when the n-th individual is observed. 
+#' @param questn
+#' vector of questions answered by the n-th individual. 
+#' 
+#' @return
+#' A matrix, containing the predicted choice probabilities for each choice marginally (ignoring correlations)
+#' 
+#' @export
+#'
+pred_probit_ordered_approx_StSp <- function(theta, Xn, yn, mod, time, quest, timen, questn) {
+    .Call(`_Rprobit_pred_probit_ordered_approx_StSp`, theta, Xn, yn, mod, time, quest, timen, questn)
+}
+
+maxEV <- function(mat) {
+    .Call(`_Rprobit_maxEV`, mat)
+}
+
+#' converts parameters to state space system matrices and returns a list to R. 
+#' @description
+#' Computes the state space system with output dimension s and state dimension n, 
+#' corresponding to the parameters param. Passes the parameters to the C++ code. 
+#' @param param 
+#' parameter vector
+#' @param s
+#' integer; output dimension 
+#' @param n
+#' integer; state dimension 
+#' @param grad_bool
+#' integer; if 0 the system is calculated, if non-zero the returned system is the derivative. The difference lies in entries fixed to one in the system which are zero for the derivative. 
+#' @param stationary 
+#' boolean; if true, the state is started at its stationary distribution, else at zero. 
+#' @return
+#' state_space_system as a list containing the system. 
+#' @export
+#'
+param_to_system_R <- function(param, s, n, grad_bool, stationary) {
+    .Call(`_Rprobit_param_to_system_R`, param, s, n, grad_bool, stationary)
+}
+
+#' Solution to the Lyapunov equation (assumes A is stable)
+#' @description
+#' Computes the solution to the Lyapunov equation P = APA' + Q   
+#' @param A
+#' Eigen::MatrixXd; matrix describing the dynamics. 
+#' @param vQ
+#' Eigen::VectorXd; vectorized version of the matrix Q.  
+#' @return
+#' Eigen::MatrixXd; solution matrix.  
+#' @keywords internal 
+#' 
+solve_Lyapunov_equation <- function(A, vQ) {
+    .Call(`_Rprobit_solve_Lyapunov_equation`, A, vQ)
+}
+
+#' observability matrix. 
+#' @description
+#' Computes the observability matrix.
+#' @param A
+#' Eigen::MatrixXd; matrix describing the dynamics. 
+#' @param C
+#' Eigen::MatrixXd; matrix describing the relation between state and output. 
+#' @param dtime
+#' Eigen::VectorXd; vector of integers, contains the time lags.   
+#' @return
+#' Eigen::MatrixXd; observability matrix.  
+#' @keywords internal 
+#' 
+calculate_observability <- function(A, C, dtime) {
+    .Call(`_Rprobit_calculate_observability`, A, C, dtime)
+}
+
+#' derivative of the observability matrix. 
+#' @description
+#' Computes the derivative of the observability matrix. 
+#' @param A
+#' Eigen::MatrixXd; matrix describing the dynamics. 
+#' @param C
+#' Eigen::MatrixXd; matrix describing the relation between state and output. 
+#' @param dA
+#' Eigen::MatrixXd; derivative of the matrix describing the dynamics. 
+#' @param dC
+#' Eigen::MatrixXd; derivative of the matrix describing the relation between state and output. 
+#' @param dtime
+#' Eigen::VectorXd; vector of integers, contains the time lags between observations. 
+#' @return
+#' Eigen::MatrixXd; derivative of the observability matrix.  
+#' @keywords internal 
+#' 
+calculate_deriv_observability <- function(A, C, dA, dC, dtime) {
+    .Call(`_Rprobit_calculate_deriv_observability`, A, C, dA, dC, dtime)
+}
+
 #' biv_normal_cdf
 #' @description
 #' The function computes the bivariate Gaussian CDF. 
-#' @param w0
+#' @param x0
 #' double; x-coordinate 
-#' @param w1
+#' @param x1
 #' double; y-coordinate 
-#' @param rho
+#' @param r12
 #' double; correlation
 #' @return 
 #' double; cdf 
@@ -527,11 +867,11 @@ biv_normal_cdf <- function(x0, x1, r12) {
 #' biv_normal_pdf
 #' @description
 #' The function computes the bivariate Gaussian PDF. 
-#' @param w0
+#' @param x0
 #' double; x-coordinate 
-#' @param w1
+#' @param x1
 #' double; y-coordinate 
-#' @param rho
+#' @param r12
 #' double; correlation
 #' @return 
 #' double; pdf 
@@ -641,6 +981,21 @@ duplmat <- function(n) {
     .Call(`_Rprobit_duplmat`, n)
 }
 
+#' convert integer to binary indices
+#' @description
+#' For an integer returns the coding in a binary vector. 
+#' @param num
+#' integer; to be converted.
+#' @param noBits
+#' integer; number of bits. 
+#' @return 
+#' binary vector.
+#' @keywords internal
+#'   
+int2bin <- function(num, noBits) {
+    .Call(`_Rprobit_int2bin`, num, noBits)
+}
+
 #' vech indices
 #' @description
 #' Returns indices of vech(X) w.r.t to the entries of X WITHOUT THE DIAGONAL
@@ -649,7 +1004,6 @@ duplmat <- function(n) {
 #' @return 
 #' matrix
 #' @keywords internal 
-#'
 vechor <- function(k) {
     .Call(`_Rprobit_vechor`, k)
 }
@@ -695,6 +1049,32 @@ commmat <- function(r, c) {
     .Call(`_Rprobit_commmat`, r, c)
 }
 
+#' Returns identity matrix 
+#' @description
+#' Returns an identity matrix of the specified dimension
+#' @param n
+#' integer; dimension of matrix.
+#' @return 
+#' matrix
+#' @keywords internal 
+#'
+identity <- function(n) {
+    .Call(`_Rprobit_identity`, n)
+}
+
+#' vectorize a matrix columnwise 
+#' @description
+#' Returns the vector of the columnwise vectorized rectangular matrix 
+#' @param Q
+#' Eigen::MatrixXd; real matrix. 
+#' @return 
+#' Eigen::VectorXd; double vector.  
+#' @keywords internal 
+#'
+vectorize <- function(Q) {
+    .Call(`_Rprobit_vectorize`, Q)
+}
+
 #' Returns elimination matrix such that C vec(X) = vech(X)
 #' @description
 #' Returns elimination matrix such that C vec(X) = vech(X)
@@ -728,7 +1108,7 @@ J_chol <- function(x) {
 #' vector of systematic utilities
 #' @param y
 #' vector of choices
-#' @param Lambda 
+#' @param Lambda  
 #' correlation matrix
 #' @param alt
 #' integer; number of alternatives

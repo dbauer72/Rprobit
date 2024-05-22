@@ -256,7 +256,10 @@ double bivnor ( double ah, double ak, double r )
     b = r8_min ( b, 1.0 );
     return b;
   }
-
+  double tol = 0.000001;
+  if (r>1.0-tol){  r =  1.0-tol;}
+  if (r<-1.0+tol){ r = -1.0+tol;}
+  
   rr = ( 1.0 + r ) * ( 1.0 - r );
 
   if ( rr < 0.0 )

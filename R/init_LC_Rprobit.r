@@ -19,7 +19,10 @@ init_LC_Rprobit <- function(Rprobit_obj,mod,control) {
 
   K <- mod$num_class
   # estimate joint model without latent classes 
-  Rp <- fit_Rprobit(Rprobit_obj, init_method = "theta")
+  
+  #browser()
+  Rpro <- Rprobit_obj$clone(deep = TRUE)
+  Rp <- fit_Rprobit(Rpro, init_method = "theta")
   Rprobit_o = Rprobit_obj$clone(deep = TRUE)
   data_tr = Rprobit_o$data$clone()
   data_tr$data <- substract_choice_regressor_from_data(Rprobit_o$data$data)

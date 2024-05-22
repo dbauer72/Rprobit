@@ -37,6 +37,13 @@ init_Rprobit <- function(ll_function, Rprobit_obj, init_method, data_tr = NULL) 
   lth <- Rprobit_obj$mod$lthb + Rprobit_obj$mod$lthO + Rprobit_obj$mod$lthL
   if (Rprobit_obj$mod$ordered == TRUE) {
     lth <- lth + Rprobit_obj$mod$alt - 1 # add parameters for tauk.
+    if (inherits(Rprobit_obj$mod,"mod_StSp_cl")){
+      s = -0.5 + sqrt(2*dim(Rprobit_obj$mod$fL)[1]+.25)
+      lth = lth+ 2*Rprobit_obj$mod$dim_state*s
+    }
+    if (inherits(Rprobit_obj$mod,"mod_AR_cl")){
+      lth = lth+ Rprobit_obj$mod$lag_length
+    }
   }
 
   ### get initial theta vector
@@ -78,7 +85,7 @@ init_Rprobit <- function(ll_function, Rprobit_obj, init_method, data_tr = NULL) 
       if (init_method == "random") {
         theta <- stats::rnorm(lth)
       }
-
+      
       ### use true theta, if supplied
       if (init_method == "theta") {
         theta <- Rprobit_obj$theta_0

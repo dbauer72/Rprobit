@@ -7,13 +7,24 @@
 build_par_from_mod(theta, mod, variances = NA, labels = NULL)
 }
 \arguments{
-\item{theta}{real vector containing parameters (\code{theta}-object)}
+\item{theta}{A \code{numeric} vector containing model parameters.}
 
-\item{mod}{A \code{\link{mod_cl}} object.}
+\item{mod}{An object of class \code{\link{mod_cl}}.}
 
-\item{variances}{Real matrix of variances (if \code{NA} (default), no standard errors are calculated)}
+\item{variances}{A \code{matrix} of parameter variances.
+By default, \code{variances = NA}, in which case no standard errors are
+calculated.}
 
-\item{labels}{optional: list with two entries: vars: list of strings with names for regressor variables; cats: list of category names}
+\item{labels}{A \code{list} with two elements:
+\itemize{
+\item \code{vars}, a \code{list} of \code{characters}, which are names for the
+regressor variables,
+\item \code{cats}, a \code{list} of \code{characters}, which are names for the
+categories.
+}
+
+By default, \code{labels = NULL}, in which case the regressors and categories
+are not named.}
 }
 \value{
 A \code{list} containing the following elements:
@@ -27,7 +38,10 @@ A \code{list} containing the following elements:
 \item{Sigma_sd}{Sigma_sd}
 }
 \description{
-This function builds model parameters from mod object and computes
+This function builds model parameters from a \code{mod} object and computes
 standard errors using the Delta method.
+}
+\details{
+TODO: The Delta method...
 }
 \keyword{internal}

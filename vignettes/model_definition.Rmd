@@ -19,59 +19,55 @@ knitr::opts_chunk$set(
   out.width = "75%"
 )
 library("Rprobit")
-options("Rprobit_progress" = FALSE)
 ```
 
 ## The probit model
 
-The multinomial probit model[^1] provides a mathematical representation of process of choosing one out of a finite number of mutually exclusive alternatives depending on a number of regressor variables. It possesses the interpretation of a random utility maximization (RUM) model, whereby a decider assigns a utility value to each alternative and picks the one with highest utility. As the modeler does not have full information, the model represent the utility using a systematic part, depending on regressor variables, plus an additive error term, which for probit models is normally distributed [@Agresti:2015].
+The multinomial probit model[^1] provides a mathematical representation of process of choosing one out of a finite number of mutually exclusive alternatives depending on a number of regressor variables. It possesses the interpretation of a random utility maximization (RUM) model, whereby a decider assigns a utility value to each alternative and picks the one with highest utility. As the modeler does not have full information, the model represents the utility using a systematic part, depending on regressor variables, plus an additive error term, which for probit models is normally distributed [@Agresti:2015].
 
 [^1]: The name *probit* is a portmanteau of *prob*ability and un*it*. [@Bliss:1934]
 
-The output of the model are conditional choice probabilities depending on the regressor values. The regressor variables potentially consist of the characteristics of the alternatives and of the deciders.
+The model output are conditional choice probabilities depending on the regressor values. The regressor variables potentially consist of characteristics describing the alternatives and the deciders. To be concrete, assume that we possess data of $N$ decision makers which choose between $J \geq 2$ alternatives at each of $T$ choice occasions[^2]. One example can be the choice of one out of a number of cars, both conventional and electric, for the next purchase. Specific to each decision maker, alternative and choice occasion, we observe $P$ choice attributes that we use to explain the choices. Decider $n$'s utility $U_{ntj}$ for alternative $j$ at choice occasion $t$ is modeled as
 
-To be concrete, assume that we possess data of $N$ decision makers which choose between $J \geq 2$ alternatives at each of $T$ choice occasions[^2]. One example can be the choice of one out of a number of cars, both conventional and electric, for the next purchase. Specific to each decision maker, alternative and choice occasion, we observe $P$ choice attributes that we use to explain the choices. Decider $n$'s utility $U_{ntj}$ for alternative $j$ at choice occasion $t$ is modeled as
+[^2]: For notational simplicity, the number of choice occasions $T$ is assumed to be the same for each decision maker here. However, we are not restricted to this case: `{Rprobit}` allows for unbalanced panels, i.e. varying $T$ over deciders. Of course, the cross-sectional case $T = 1$ is possible.
 
-[^2]: For notational simplicity, the number of choice occasions $T$ is assumed to be the same for each decision maker here. However, we are not restricted to this case: {Rprobit} allows for unbalanced panels, i.e. varying $T$ over deciders. Of course, the cross-sectional case $T = 1$ is possible.
+$$
+U_{ntj} = X_{ntj}'\beta + S_{nt}' \gamma_j + Z_{ntj}'\delta_j + \alpha_j + \epsilon_{ntj}
+$$
 
-```{=tex}
-\begin{equation}
-  U_{ntj} = X_{ntj}'\beta + S_{nt}' \gamma_j + Z_{ntj}'\delta_j + \alpha_j + \epsilon_{ntj}
-\end{equation}
-```
 for $n=1,\dots,N$, $t=1,\dots,T$ and $j=1,\dots,J$, where
 
--   $X_{ntj}, (Z_{ntj})$ is a (column) vector of $P(P_Z)$ characteristics of alternative $j$ as faced by $n$ at choice occasion $t$,
+- $X_{ntj}$ ($Z_{ntj}$) is a (column) vector of $P$ ($P_Z$) characteristics of alternative $j$ as faced by $n$ at choice occasion $t$,
 
--   $S_{nt}$ is a (column) vector of $P_S$ characteristics of the decider $n$ at occasion $t$
+- $S_{nt}$ is a (column) vector of $P_S$ characteristics of the decider $n$ at occasion $t$,
 
--   $\beta \in {\mathbb R}^{P}, \gamma_j \in {\mathbb R}^{P_S}, \delta_j \in {\mathbb R}^{P_Z}$ is a vector of coefficients,
+- $\beta \in {\mathbb R}^{P}, \gamma_j \in {\mathbb R}^{P_S}, \delta_j \in {\mathbb R}^{P_Z}$ is a vector of coefficients,
 
--   $\alpha_j \in {\mathbb R}$ are called alternative specific constants (ASCs)
+- $\alpha_j \in {\mathbb R}$ are called alternative specific constants (ASCs),
 
--   and $(\epsilon_{nt:}) = (\epsilon_{nt1},\dots,\epsilon_{ntJ})' \sim \text{MVN}_{J} (0,\Sigma)$ is the model's error term vector for $n$ at $t$, which in the probit model is assumed to be multivariate normally distributed with zero mean and covariance matrix $\Sigma$.
+- and $(\epsilon_{nt:}) = (\epsilon_{nt1},\dots,\epsilon_{ntJ})' \sim \text{MVN}_{J} (0,\Sigma)$ is the model's error term vector for $n$ at $t$, which in the probit model is assumed to be multivariate normally distributed with zero mean and covariance matrix $\Sigma$.
 
-The three type of regressor variables are called
+The three types of regressor variables are called
 
--   type 1 variables ($X_{ntj}$) that vary over alternatives but influence the utility with a common coefficient (that is, not depending on the alternative).
+- type 1 variables ($X_{ntj}$) that vary over alternatives but influence the utility with a common coefficient (that is, not depending on the alternative),
 
--   type 2 variables ($S_{nt}$) that do not very over time and influence the utility with coefficients differing over alternatives.
+- type 2 variables ($S_{nt}$) that do not very over alternatives and influence the utility with coefficients differing over alternatives,
 
--   type 3 variables ($Z_{ntj}$) that vary over alternatives but influence the utility with coefficients differing over alternatives. Now let $y_{nt}=j$ denote the event that decision maker $n$ chooses alternative $j$ at her $t$-th choice occasion. Assuming utility maximizing behavior of the decision makers[^3], the decisions are linked to the utilities via
+- type 3 variables ($Z_{ntj}$) that vary over alternatives but influence the utility with coefficients differing over alternatives. 
 
-[^3]: This in fact is a critical assumption because many studies show that humans do not decide in this rational sense in general, see for example [@Hewig:2011].
+Now let $y_{nt}=j$ denote the event that decision maker $n$ chooses alternative $j$ at her $t$-th choice occasion. Assuming utility maximizing behavior of the decision makers[^3], the decisions are linked to the utilities via[^4]
 
-```{=tex}
-\begin{equation}
-    y_{nt} = {\arg \max}_{j = 1,\dots,J} U_{ntj}.
-\end{equation}
-```
+[^3]: This in fact is a critical assumption because many studies show that humans do not decide in this rational sense in general, see for example @Hewig:2011.
 
-Here 'argmax' picks the smallest maximizing argument in the unlikely case of a draw. 
+[^4]: Here, ${\arg \max}$ picks the smallest maximizing argument in the unlikely case of a draw. 
+
+$$
+y_{nt} = {\arg \max}_{j = 1,\dots,J} U_{ntj}.
+$$
 
 ## Model Formula
 
-In {Rprobit} the model is represented using a formula as in the R package **mlogit**. The following formula describes the dependent variable `choice` as a function of the type 1 variable `V1`, the type 2 variable `V2` and the type three variable `V3`:
+In `{Rprobit}` the model is represented using a formula as in the `{mlogit}` R package [@Croissant:2020]. The following formula describes the dependent variable `choice` as a function of the type 1 variable `V1`, the type 2 variable `V2` and the type 3 variable `V3`:
 
 ```{r, eval = FALSE}
 formula <- choice ~ V1 | V2 | V3
@@ -79,11 +75,11 @@ formula <- choice ~ V1 | V2 | V3
 
 Hereby the following rules apply:
 
--   `choice` must be categorical variable listing the choices taken
--   Type 3 variables may be omitted.
--   Type 2 variables may be omitted.
--   By default ASCs are included as type 2 variables. They can be excluded by adding `+0` such as `V2 + 0`
--   More variables can be included in each of the three sections using addition signs such as `V1 + V2 + V3`
+- `choice` must be categorical variable listing the choices taken.
+- Type 3 variables may be omitted.
+- Type 2 variables may be omitted.
+- More than one variable can be included in each of the three sections using addition signs such as `V1 + V2 + V3`.
+- By default ASCs are included as type 2 variables. They can be excluded by adding `+ 0` such as `V2 + 0`.
 
 ## Example: Choice of a New Car
 
@@ -91,59 +87,50 @@ Consider a household deciding between different power trains for the car to be p
 
 The alternative specific variables may include: 
 
--   The price
-
--   The driving range `range`
-
--   The horse power equivalent `PS`
-
--   The expected maintenance price per year `Main`
+- price `price`
+- driving range `range`
+- horse power equivalent `PS`
+- expected maintenance price per year `Main`
 
 All of these depend on the alternative at the time of buying. The driving range coefficient for the BEV will be much higher than for the ICEV, as the refilling of the ICEV is simpler.
 
 The decider characteristics may include: 
 
--   household income `HI`
-
--   household savings `HS`
-
--   location (urban?) `loc`
-
--   charging facility potential `CF`
-
--   attitude towards environmental issues `Attitude`
+- household income `HI`
+- household savings `HS`
+- location (urban?) `loc`
+- charging facility potential `CF`
+- attitude towards environmental issues `Attitude`
 
 The corresponding formula might be assuming that `Atttiude` is not measured:
 
 ```{r, eval = FALSE}
-formula <- choice ~  PS + Main | HI + HS + loc + CF +0  | range
+formula <- choice ~  PS + Main | HI + HS + loc + CF + 0 | range
 ```
 
 The tradeoff between the purchase price and the driving range of a car may depend on the commuting habits of the deciders that are not represented well in the data.
 
 ## Identifiability
 
-When maximizing utilities the level is not of importance @Train:2009: Adding a constant to all utilities does not change the maximizing alternative. Also the scale is not of importance: Multiplying all utilities with a positive constant leaves the maximizing alternative indifferent. This implies identifiability issues.
+When maximizing utilities the level is not of importance: Adding a constant to all utilities does not change the maximizing alternative. Also the scale is not of importance: Multiplying all utilities with a positive constant leaves the maximizing alternative indifferent. This implies identifiability issues. [@Train:2009]
 
-For type 1 variables the difference between two utilities $U_{ntj}-U_{ntk}$ depends on the difference $X_{ntj}-X_{ntk}$ between the regressor variables. Therefore variables that do not vary over alternatives resulting in $X_{ntj}-X_{ntk}=0$ cannot be used as type 1 variables. Otherwise $\beta$ needs to be identified from $X_{ntj}'\beta$. Thus all type 1 variables need not be multicollinear.
+For type 1 variables the difference between two utilities $U_{ntj}-U_{ntk}$ depends on the difference $X_{ntj}-X_{ntk}$ between the regressor variables. Therefore variables that do not vary over alternatives (resulting in $X_{ntj}-X_{ntk}=0$) cannot be used as type 1 variables. Otherwise $\beta$ needs to be identified from $X_{ntj}'\beta$. Thus all type 1 variables need not be multicollinear.
 
-For each type 2 variable the model includes $J$ coefficients contained in $\gamma_j$. Subtracting $S_{nt}'\gamma_1$ from all utilities eliminates the coefficients corresponding to the first alternative from the model. The remaining $(J-1)P_S$ coefficients for the type 2 variables are identifiable, if there are no multicollinearities between the type 2 variables. Here the choice of the first variable is arbitrary and any base alternative can be chosen.
+For each type 2 variable the model includes $J$ coefficients $\gamma_j$. Subtracting $S_{nt}'\gamma_1$ from all utilities eliminates the coefficients corresponding to the first alternative from the model. The remaining $(J-1) \cdot P_S$ coefficients for the type 2 variables are identifiable, if there are no multicollinearities between the type 2 variables. Here the choice of the first variable is arbitrary and any base alternative can be chosen.
 
-For type 3 variables we obtain $Z_{ntj}'\delta_j - Z_{ntk}'\delta_k$ in the utility differences. It follows that here all $P_Z J$ coefficients are identified, if $Z_{ntj}$ vary over alternatives and are not multicollinear.
+For type 3 variables we obtain $Z_{ntj}'\delta_j - Z_{ntk}'\delta_k$ in the utility differences. It follows that here all $J \cdot P_Z$ coefficients are identified, if $Z_{ntj}$ vary over alternatives and are not multicollinear.
 
-The same issue arises for the error terms: Subtracting the error $\varepsilon_{nt1}$ from all utilities does not change the maximizing alternative. Thus we can without restriction of generality assume that $\varepsilon_{nt1}=0$ (or pick any alternative as a base alternative in this respect).
+The same issue arises for the error terms: Subtracting the error $\epsilon_{nt1}$ from all utilities does not change the maximizing alternative. Thus we can without restriction of generality assume that $\epsilon_{nt1} = 0$ (or pick any alternative as a base alternative in this respect).
 
-Finally for the identification of the scale one may either restrict one coefficient to unity (or minus unity). Or one might restrict one variance to a particular value (typically 1 or 0.5). For details see @Train:2009 section 5.2.
-
-Numerically fixing one coefficient to 1 is more stable than fixing a variance.
+Finally for the identification of the scale one may either restrict one coefficient to unity (or minus unity). Or one might restrict one variance to a particular value (typically 1 or 0.5). For details see @Train:2009 Section 5.2. Numerically fixing one coefficient to 1 is more stable than fixing a variance.
 
 ## Model Unification
 
-While the specification of type 1, type 2 and type 3 variables is convenient for model specification and data storage, it is inconvenient in the estimation phase. Thus {Rprobit} uses a unified framework recoding type 2 and type 3 variables into a set of type 1 variables. This is exemplified below.
+While the specification of type 1, type 2 and type 3 variables is convenient for model specification and data storage, it is inconvenient in the estimation phase. Thus `{Rprobit}` uses a unified framework, recoding type 2 and type 3 variables into a set of type 1 variables. This is exemplified below.
 
 ### Representing Type 2 variables as a set of type 1 variables
 
-A type 2 variable is specific to the decider but not the alternatives. There are $J-1$ parameters corresponding to the type 2 variable, one for each alternative except for the base alternative. By interacting the type 2 variable with indicators of the $J-1$ alternatives we obtain $J-1$ variables varying over the alternatives: $X_{ntjl} = S_{nt}{\mathbb I}(l==j)$ where ${\mathbb I}$ denotes the indicator function. This renders the vector of utilities (using the first alternative as the base)
+A type 2 variable is specific to the decider but not the alternatives. There are $J-1$ parameters corresponding to the type 2 variable, one for each alternative except for the base alternative. By interacting the type 2 variable with indicators of the $J-1$ alternatives we obtain $J-1$ variables varying over the alternatives: $X_{ntjl} = S_{nt}{\mathbb I}(l=j)$, where ${\mathbb I}$ denotes the indicator function. This renders the vector of utilities (using the first alternative as the base):
 
 $$
 \left( \begin{array}{c} U_{nt1} \\ U_{nt2} \\ \vdots \\ U_{ntJ} \end{array}  \right) = 
@@ -166,53 +153,53 @@ $$
 = Z_{nt} \delta.
 $$ 
 
-Note that contrary to type 2 variables we obtain $J$ new type 1 variables.
+Note that contrary to type 2 variables, for type 3 variables we obtain $J$ new type 1 variables.
 
 ## Ordered Probit
 
-Often the alternatives can be ordered. The leading case here arises in surveys where individuals are asked to assign values on a scale. In such ordered probit cases, the concept of decider's having separate utilities for each alternative is no longer natural [@Train:2009]. Instead, we model only a single utility value \begin{align*}
+Often the alternatives can be ordered. The leading case here arises in surveys where individuals are asked to assign values on a scale. In such ordered probit cases, the concept of decider's having separate utilities for each alternative is no longer natural [@Train:2009]. Instead, we model only a single utility value 
+\begin{align*}
   U_{nt} = X_{nt}'\beta_n + \epsilon_{nt}
-\end{align*} per decider $n$ and choice occasion $t$, which we interpret as the "level of association" that $n$ has with the choice question. The utility value falls into discrete categories, which in turn are linked to the ordered alternatives $j=1,\dots,J$. Formally, \begin{align*}
+\end{align*} 
+per decider $n$ and choice occasion $t$, which we interpret as the "level of association" that $n$ has with the choice question. The utility value falls into discrete categories, which in turn are linked to the ordered alternatives $j=1,\dots,J$. Formally, \begin{align*}
    y_{nt} = \sum_{j = 1,\dots,J} j \cdot I(\gamma_{j-1} < U_{nt} \leq \gamma_{j}),
 \end{align*} with end points $\gamma_0 = -\infty$ and $\gamma_J = +\infty$, and thresholds $(\gamma_j)_{j=1,\dots,J-1}$. To ensure monotonicity of the thresholds, we rather estimate logarithmic threshold increments $d_j$ with $\gamma_j = \sum_{i=1,\dots,j} \exp{d_i}$, $j=1,\dots,J-1$.
 
 ## Choice behavior heterogeneity
 
-Note that all coefficient vectors $\beta, \gamma_j, \delta_j$ above are constant across decision makers. This assumption is too restrictive for many applications.[^4] Unobserved heterogeneity in choice behavior can be modeled by imposing a distribution on any element of $\beta, \gamma_j, \delta_j$ such that each decider can have their own preferences.
+Note that all coefficient vectors $\beta, \gamma_j, \delta_j$ above are constant across decision makers. This assumption is too restrictive for many applications.[^5] Unobserved heterogeneity in choice behavior can be modeled by imposing a distribution on any element of $\beta, \gamma_j, \delta_j$ such that each decider can have their own preferences.
 
-[^4]: For example, the tradeoff between the purchase price and the driving range may depend on the commuting habits of the deciders that are not represented well in the data.
+[^5]: For example, the tradeoff between the purchase price and the driving range may depend on the commuting habits of the deciders that are not represented well in the data.
 
-Such models use a random parameter setup wherein the random parameters are assumed to be drawn independent of the other regressor variables. Mathematically this implies a mixing of the implied choice probabilities (the expectation over the random terms mathematically leads to an integration). {RprobitB} implements normally distributed random parameters.
+Such models use a random parameter setup wherein the random parameters are assumed to be drawn independent of the other regressor variables. Mathematically this implies a mixing of the implied choice probabilities (the expectation over the random terms mathematically leads to an integration). `{RprobitB}` implements normally distributed random parameters.
 
 More precisely, in the unified model representation using only type 1 variables some of the components of $\beta$ can be mixed using a normal distribution for mixing. We assume that the mixed coefficients appear in the first part of $\beta$, that is $\beta = [\beta_r',\beta_f'], \beta_r \in {\mathbb R}^R, \beta_r \sim {\mathcal N}(b_r, \Omega), \beta_f = b_f \in {\mathbb R}^{K-R}$.
 
-It is assumed that all coefficients corresponding to original type 2 or type 3 variables are either mixed or not mixed. Thus the mixed coefficients can be specified by providing the names of their corresponding variables. For example in the model `formula <- choice ~ V1 | V2 | V3` the coefficients to variable `V1` and `V2` are defined as mixing via
+It is assumed that all coefficients corresponding to original type 2 or type 3 variables are either mixed or not mixed. Thus the mixed coefficients can be specified by providing the names of their corresponding variables. For example in the model `formula <- choice ~ V1 | V2 | V3` the coefficients to variable `V1` and `V3` are defined as mixing via
 
 ```{r, eval = FALSE}
-re <- c("V1","V3")
+re <- c("V1", "V3")
 ```
-
-The underlying mixing distribution $g_{P_r}$ for the random coefficients $\beta_r$ is modelled as normal densities $\phi_{P_r}$ with expectation vector $b_r$ and covariance matrix $\Omega$.
 
 ## Model Parameterization
 
 According to the unification described above we achieve model specification using only type 1 variables as
 
 $$
-U_{ntj} = X_{ntj}'\beta + \epsilon_{ntj}, j = 1,...,J, X_{ntj} , (\epsilon_{nt:}) \in {\mathbb R}^J, \beta  \in {\mathbb R}^K
+U_{ntj} = X_{ntj}'\beta + \epsilon_{ntj}, j = 1,...,J, X_{ntj} , (\epsilon_{nt:}) \in {\mathbb R}^J, \beta  \in {\mathbb R}^K.
 $$
 
 Some of the components of $\beta$ can be mixed using a normal distribution for mixing. We assume that the mixed coefficients appear in the first part of $\beta$, that is $\beta = [\beta_r',\beta_f'], \beta_r \in {\mathbb R}^R, \beta_r \sim {\mathcal N}(b_r, \Omega), \beta_f = b_f \in {\mathbb R}^{K-R}$.
 
-Therefore the parameterization of the model requires parameters for the vector $b = (b_r',b_f')' \in {\mathcal R}^K$ and the two variance matrices $\Omega \in {\mathcal R}^{r \times r}$ and $\Sigma \in {\mathcal R}^{J \times J}$. The parameterization has to conform to the restriction that variance matrices are positive semi-definite. Additionally the parameterization must ascertain identifiability of the parameters.
+Therefore the parameterization of the model requires parameters for the vector $b = (b_r',b_f')' \in {\mathbb R}^K$ and the two variance matrices $\Omega \in {\mathbb R}^{r \times r}$ and $\Sigma \in {\mathbb R}^{J \times J}$. The parameterization has to conform to the restriction that variance matrices are positive semi-definite. Additionally the parameterization must ascertain identifiability of the parameters.
 
-
-The parameter vector $b  \in {\mathbb R}^{K}$ is parameterized using a linear affine mappping:
+The parameter vector $b \in {\mathbb R}^{K}$ is parameterized using a linear affine mappping:
 
 $$
 b = H_b \theta_b + f_b. 
 $$
-This allows to incorporate linear equality constraints on the parameters. For instance, restricting $b_1=1, b_2 = 0, b_3 = - b_4$ with $b_5$ free is achieved using
+
+This allows to incorporate linear equality constraints on the parameters. For instance, restricting $b_1 = 1, b_2 = 0, b_3 = - b_4$ with $b_5$ free is achieved using
 
 $$
 H_b = \left( \begin{array}{cc} 0 & 0 \\ 0 & 0  \\ 1 & 0  \\ -1 & 0 \\ 0 & 1 \end{array} \right), f_b =  \left( \begin{array}{c} 1 \\ 0 \\ 0 \\ 0 \\ 0  \end{array} \right).
@@ -227,67 +214,65 @@ $$
 $$
 
 where $\mbox{vech}$ denotes columnwise vectorization of the lower triangular matrix (including the diagonal). Thus for $K=3$, for example, the lower triangular Cholesky factor includes 6 entries: 
-```{=tex}
+
+$$
 \begin{align*}
-L = \left( \begin{array}{ccc) \theta_1 & 0 & 0 \\ \theta_2 & \theta_4 & 0 \\ \theta_3 & \theta_5 & \theta_6 \end{array} \right)
+L = \left( \begin{array}{ccc} \theta_1 & 0 & 0 \\ \theta_2 & \theta_4 & 0 \\ \theta_3 & \theta_5 & \theta_6 \end{array} \right).
 \end{align*}
-```
+$$
 
 Here $f_L$ can be used to fix entries for identifiability reasons. For example, for $J=3$ parameterizing a diagonal matrix where the (1,1) entry is fixed to equal $\Sigma_{1,1}=1$ can be done using
 
-```{=tex}
+$$
 \begin{align*}
 H_L &= \left( \begin{array}{cc} 0 & 0 \\ 0 & 0 \\ 0 & 0 \\ 1 & 0 \\ 0 & 0 \\ 0 & 1  \end{array} \right), 
-f_L = \left( \begin{array}{c}  1 \\ 0 \\ 0  \\ 0 \\ 0  \\  0  \end{array} \right)
+f_L = \left( \begin{array}{c}  1 \\ 0 \\ 0  \\ 0 \\ 0  \\  0  \end{array} \right).
 \end{align*}
-```
+$$
 
-Thus there are two parameters $\theta_1$ and $\theta_2$. We do not impose non-negativity of these parameters leading to a non-identifiability as without this restriction on the diagonal entries the Cholesky factors are not unique. The tradeoff made here is the inclusion of multiple well separated global optima in favor of being able to leave out parameter non-negativity restrictions.
+Thus there are two parameters $\theta_1$ and $\theta_2$. We do not impose non-negativity of these parameters, which leads to a non-identifiability as without this restriction on the diagonal entries the Cholesky factors are not unique. The tradeoff made here is the inclusion of multiple well separated global optima in favor of being able to leave out parameter non-negativity restrictions.
 
 ## Model object
 
-{Rprobit} collects all information related to the model in a `mod_cl`object. 
-The following example parameterizes the model featuring $J=3$ alternatives. For each of the three objects `$\beta$`, `$\Omega$` and `$\Sigma$` H matrices and f-vectors are contained. The object also stores the corresponding number of parameters equaling the number of columns of the H-matrices:
+`{Rprobit}` collects all information related to the model in a `mod_cl` object. 
+The following example parameterizes a model featuring $J = 3$ alternatives. For each of $\beta$, $\Omega$ and $\Sigma$, $H$ matrices and $f$ vectors are contained. The object also stores the corresponding number of parameters equaling the number of columns of the $H$ matrices:
 
 ```{r, eval = TRUE}
 mod <- mod_cl$new(
-  Hb   = diag(6),
-  fb   = as.matrix(c(0,0,0,0,0,0),ncol=1),
-  HO   = matrix(0,0,0),
-  fO   = matrix(0,0,0),
-  HL   = diag(6)[,-c(1,2,3,4)],
-  fL   = as.matrix(c(0,0,0,1,0,0)),
-  ordered = FALSE
+  Hb = diag(6),
+  fb = matrix(0, ncol = 1, nrow = 6),
+  HO = matrix(0, ncol = 0, nrow = 0),
+  fO = matrix(0, ncol = 0, nrow = 0),
+  HL = diag(6)[, -c(1, 2, 3, 4)],
+  fL = matrix(c(0, 0, 0, 1, 0, 0), ncol = 1),
 )
-mod
 ```
 
-Out of a total of six coefficients ($lthb=6$) none is random ($lRE =0$). Correspondingly $\Omega \in {\mathbb R}^{0 \times 0}$. The variance $\Sigma$ uses two parameters:
+Printing the object provides an overview of the specification:
 
-```{=tex}
+```{r, eval = TRUE}
+print(mod)
+```
+
+Out of a total of six coefficients (`lthb=6`) none is random (`lRE = 0`). Correspondingly $\Omega \in {\mathbb R}^{0 \times 0}$. The variance $\Sigma$ uses two parameters:
+
+$$
 \begin{align*}
-H_L &= \left( \begin{array}{cc} 0 & 0 \\ 0 & 0 \\ 0 & 0 \\ 0 & 0 \\ 1 & 0 \\ 0 & 1  \end{array}\right),  f_L = \left(\begin{array}{c} 0 \\ 0 \\ 0  \\ 1 \\ 0  \\  0  \end{array} \right) \Rightarrow L = \left( \begin{array}{ccc} 0 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & \theta_1 & \theta_2  \end{array} \right) \Rightarrow \Sigma = LL' =  \left( \begin{array}{ccc} 0 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & \theta_1 & \theta_1^2 + \theta_2^2  \end{array}\right)
+H_L &= \left( \begin{array}{cc} 0 & 0 \\ 0 & 0 \\ 0 & 0 \\ 0 & 0 \\ 1 & 0 \\ 0 & 1  \end{array}\right),  f_L = \left(\begin{array}{c} 0 \\ 0 \\ 0  \\ 1 \\ 0  \\  0  \end{array} \right) \Rightarrow L = \left( \begin{array}{ccc} 0 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & \theta_1 & \theta_2  \end{array} \right) \Rightarrow \Sigma = LL' =  \left( \begin{array}{ccc} 0 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & \theta_1 & \theta_1^2 + \theta_2^2  \end{array}\right).
 \end{align*}
-```
+$$
 
-This parameterization does not ensure that the parameters are identifiable. Some problems with identifiability can be checked using the function `check_identifiability(mod)`. For the above mentioned `mod` object we obtain:
+If we change the parameterization to also estimate the $(2,2)$-element of $L$, then the model looses its identifiability. Some problems with identifiability can be checked using the  `check_identifiability()` function. The first model is identifiable... 
 
 ```{r, eval = TRUE}
 check_identifiability(mod)
 ```
-If we change the parameterisation to also estimate the (2,2) element of $L$, then the model looses its identifiability:
 
-```{r, eval = TRUE}
-mod <- mod_cl$new(
-  Hb   = diag(6),
-  fb   = as.matrix(c(0,0,0,0,0,0),ncol=1),
-  HO   = matrix(0,0,0),
-  fO   = matrix(0,0,0),
-  HL   = diag(6)[,-c(1,2,3)],
-  fL   = as.matrix(c(0,0,0,0,0,0)),
-  ordered = FALSE
-)
-mod
+... while the second is not:
+
+```{r, eval = TRUE, warning = TRUE}
+mod$HL <- diag(6)[, -c(1, 2, 3)]
+mod$fL <- matrix(0, ncol = 1, nrow = 6)
 check_identifiability(mod)
 ```
 

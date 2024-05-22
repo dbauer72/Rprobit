@@ -34,7 +34,7 @@ fit_LC_EM_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm =
   
   ## set controls for EM algorithm, if not supplied 
   if (is.null(control_EM)){
-    control_EM$iter_lim <- 20 # total number of iterations
+    control_EM$iter_lim <- 200 # total number of iterations
     control_EM$iter_lim_one_step <- 5 # number of iteration steps in one optimization
     control_EM$tol <- 0.00001 # loop ended, if criterion function changes less than tol. 
     control_EM$optim_all <- FALSE # (FALSE) (default: cycle over classes, optimising one per iteration)

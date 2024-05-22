@@ -11,7 +11,7 @@ A \code{mod_cl} object contains the probit model specification.
 \describe{
 \item{\code{alt}}{number of alternatives}
 
-\item{\code{ordered}}{Boolean: data ordered choices?}
+\item{\code{ordered}}{\code{TRUE} for ordered choices and \code{FALSE} else}
 }
 \if{html}{\out{</div>}}
 }
@@ -22,11 +22,11 @@ A \code{mod_cl} object contains the probit model specification.
 
 \item{\code{lthO}}{number of parameters for Omega}
 
-\item{\code{lRE}}{number of random coefficients}
+\item{\code{lRE}}{number of random beta coefficients}
 
 \item{\code{lthL}}{number of parameters for Sigma}
 
-\item{\code{fb}}{vector of fixed params for beta}
+\item{\code{fb}}{vector of fixed parameters for beta}
 
 \item{\code{Hb}}{matrix for dependence of beta on parameters}
 
@@ -64,7 +64,9 @@ initialization function
   HL = matrix(0, 0, 0),
   fL = matrix(0, 0, 0),
   alt = 2,
-  ordered = FALSE
+  ordered = FALSE,
+  validate = TRUE,
+  check_identifiability = FALSE
 )}\if{html}{\out{</div>}}
 }
 
@@ -85,7 +87,11 @@ initialization function
 
 \item{\code{alt}}{number of alternatives}
 
-\item{\code{ordered}}{Boolean: ordered choice?}
+\item{\code{ordered}}{\code{TRUE} for ordered choices and \code{FALSE} else}
+
+\item{\code{validate}}{\code{TRUE} to validate specification}
+
+\item{\code{check_identifiability}}{\code{TRUE} to check for identifiability}
 
 \item{\code{Tp}}{number of choices per decider}
 }
@@ -96,7 +102,7 @@ initialization function
 \if{html}{\out{<a id="method-mod_cl-validate"></a>}}
 \if{latex}{\out{\hypertarget{method-mod_cl-validate}{}}}
 \subsection{Method \code{validate()}}{
-validates if parameters are conformable.
+validates if parameters are conformable
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{mod_cl$validate()}\if{html}{\out{</div>}}
 }

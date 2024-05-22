@@ -109,19 +109,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// TVBS_pmvnorm_cpp
-double TVBS_pmvnorm_cpp(Eigen::VectorXd upper, Eigen::VectorXd mu, Eigen::MatrixXd Sigma);
-RcppExport SEXP _Rprobit_TVBS_pmvnorm_cpp(SEXP upperSEXP, SEXP muSEXP, SEXP SigmaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type upper(upperSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Sigma(SigmaSEXP);
-    rcpp_result_gen = Rcpp::wrap(TVBS_pmvnorm_cpp(upper, mu, Sigma));
-    return rcpp_result_gen;
-END_RCPP
-}
 // TVBS_v2
 Eigen::VectorXd TVBS_v2(Eigen::VectorXd x_norm, Eigen::MatrixXd Cor_mat, int log_out);
 RcppExport SEXP _Rprobit_TVBS_v2(SEXP x_normSEXP, SEXP Cor_matSEXP, SEXP log_outSEXP) {
@@ -173,6 +160,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// TVBS_pmvnorm_cpp
+double TVBS_pmvnorm_cpp(Eigen::VectorXd upper, Eigen::VectorXd mu, Eigen::MatrixXd Sigma);
+RcppExport SEXP _Rprobit_TVBS_pmvnorm_cpp(SEXP upperSEXP, SEXP muSEXP, SEXP SigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type upper(upperSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Sigma(SigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(TVBS_pmvnorm_cpp(upper, mu, Sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ll_macml_marginal
 NumericVector ll_macml_marginal(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List mod, Rcpp::List control);
 RcppExport SEXP _Rprobit_ll_macml_marginal(SEXP thetaSEXP, SEXP data_objSEXP, SEXP modSEXP, SEXP controlSEXP) {
@@ -215,23 +215,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cal_choice_probs_1_nograd
-double cal_choice_probs_1_nograd(Eigen::MatrixXd X, int alt, int y1, Eigen::VectorXd b, Eigen::MatrixXd Sigma, Eigen::MatrixXd Omega, std::string approx_method);
-RcppExport SEXP _Rprobit_cal_choice_probs_1_nograd(SEXP XSEXP, SEXP altSEXP, SEXP y1SEXP, SEXP bSEXP, SEXP SigmaSEXP, SEXP OmegaSEXP, SEXP approx_methodSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
-    Rcpp::traits::input_parameter< int >::type alt(altSEXP);
-    Rcpp::traits::input_parameter< int >::type y1(y1SEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type b(bSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Sigma(SigmaSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Omega(OmegaSEXP);
-    Rcpp::traits::input_parameter< std::string >::type approx_method(approx_methodSEXP);
-    rcpp_result_gen = Rcpp::wrap(cal_choice_probs_1_nograd(X, alt, y1, b, Sigma, Omega, approx_method));
-    return rcpp_result_gen;
-END_RCPP
-}
 // pred_probit_approx
 Eigen::MatrixXd pred_probit_approx(Eigen::VectorXd theta, Rcpp::List data, Rcpp::List mod, Rcpp::List control);
 RcppExport SEXP _Rprobit_pred_probit_approx(SEXP thetaSEXP, SEXP dataSEXP, SEXP modSEXP, SEXP controlSEXP) {
@@ -257,6 +240,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type control(controlSEXP);
     rcpp_result_gen = Rcpp::wrap(ll_macml_LC(theta, data_obj, mod, control));
+    return rcpp_result_gen;
+END_RCPP
+}
+// choice_probs_nonpara
+Eigen::MatrixXd choice_probs_nonpara(Rcpp::List data_obj, Rcpp::List mod, Rcpp::List control, int cml_pair_type);
+RcppExport SEXP _Rprobit_choice_probs_nonpara(SEXP data_objSEXP, SEXP modSEXP, SEXP controlSEXP, SEXP cml_pair_typeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type data_obj(data_objSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type control(controlSEXP);
+    Rcpp::traits::input_parameter< int >::type cml_pair_type(cml_pair_typeSEXP);
+    rcpp_result_gen = Rcpp::wrap(choice_probs_nonpara(data_obj, mod, control, cml_pair_type));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -401,6 +398,242 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// param_to_system_AR_R
+Rcpp::List param_to_system_AR_R(Eigen::VectorXd param, int lag, int grad_bool, bool stationary);
+RcppExport SEXP _Rprobit_param_to_system_AR_R(SEXP paramSEXP, SEXP lagSEXP, SEXP grad_boolSEXP, SEXP stationarySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type param(paramSEXP);
+    Rcpp::traits::input_parameter< int >::type lag(lagSEXP);
+    Rcpp::traits::input_parameter< int >::type grad_bool(grad_boolSEXP);
+    Rcpp::traits::input_parameter< bool >::type stationary(stationarySEXP);
+    rcpp_result_gen = Rcpp::wrap(param_to_system_AR_R(param, lag, grad_bool, stationary));
+    return rcpp_result_gen;
+END_RCPP
+}
+// build_system_from_model_AR_R
+Rcpp::List build_system_from_model_AR_R(Eigen::VectorXd theta, Rcpp::List mod, Eigen::VectorXd time);
+RcppExport SEXP _Rprobit_build_system_from_model_AR_R(SEXP thetaSEXP, SEXP modSEXP, SEXP timeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type time(timeSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_system_from_model_AR_R(theta, mod, time));
+    return rcpp_result_gen;
+END_RCPP
+}
+// build_derived_system_from_model_AR
+Eigen::MatrixXd build_derived_system_from_model_AR(Eigen::VectorXd theta, Rcpp::List mod, Eigen::VectorXd time, int coord);
+RcppExport SEXP _Rprobit_build_derived_system_from_model_AR(SEXP thetaSEXP, SEXP modSEXP, SEXP timeSEXP, SEXP coordSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< int >::type coord(coordSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_derived_system_from_model_AR(theta, mod, time, coord));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ll_macml_o_AR
+NumericVector ll_macml_o_AR(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List mod, Rcpp::List control);
+RcppExport SEXP _Rprobit_ll_macml_o_AR(SEXP thetaSEXP, SEXP data_objSEXP, SEXP modSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type data_obj(data_objSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type control(controlSEXP);
+    rcpp_result_gen = Rcpp::wrap(ll_macml_o_AR(theta, data_obj, mod, control));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pred_probit_ordered_approx_AR
+Eigen::MatrixXd pred_probit_ordered_approx_AR(Eigen::VectorXd theta, Eigen::MatrixXd Xn, Eigen::VectorXd yn, Rcpp::List mod, Eigen::VectorXd time, int quest, Eigen::VectorXd timen, Eigen::VectorXd questn);
+RcppExport SEXP _Rprobit_pred_probit_ordered_approx_AR(SEXP thetaSEXP, SEXP XnSEXP, SEXP ynSEXP, SEXP modSEXP, SEXP timeSEXP, SEXP questSEXP, SEXP timenSEXP, SEXP questnSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Xn(XnSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type yn(ynSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< int >::type quest(questSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type timen(timenSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type questn(questnSEXP);
+    rcpp_result_gen = Rcpp::wrap(pred_probit_ordered_approx_AR(theta, Xn, yn, mod, time, quest, timen, questn));
+    return rcpp_result_gen;
+END_RCPP
+}
+// build_system_from_model_R
+Rcpp::List build_system_from_model_R(Eigen::VectorXd theta, Rcpp::List mod, Eigen::VectorXd time);
+RcppExport SEXP _Rprobit_build_system_from_model_R(SEXP thetaSEXP, SEXP modSEXP, SEXP timeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type time(timeSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_system_from_model_R(theta, mod, time));
+    return rcpp_result_gen;
+END_RCPP
+}
+// build_derived_system_from_model
+Eigen::MatrixXd build_derived_system_from_model(Eigen::VectorXd theta, Rcpp::List mod, Eigen::VectorXd time, int coord);
+RcppExport SEXP _Rprobit_build_derived_system_from_model(SEXP thetaSEXP, SEXP modSEXP, SEXP timeSEXP, SEXP coordSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< int >::type coord(coordSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_derived_system_from_model(theta, mod, time, coord));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_observation_indices
+Eigen::VectorXd get_observation_indices(Eigen::VectorXd time, int quest, Eigen::VectorXd time_n, Eigen::VectorXd quest_n);
+RcppExport SEXP _Rprobit_get_observation_indices(SEXP timeSEXP, SEXP questSEXP, SEXP time_nSEXP, SEXP quest_nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< int >::type quest(questSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type time_n(time_nSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type quest_n(quest_nSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_observation_indices(time, quest, time_n, quest_n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// subset
+Eigen::MatrixXd subset(Eigen::MatrixXd Gam, Eigen::VectorXd vec);
+RcppExport SEXP _Rprobit_subset(SEXP GamSEXP, SEXP vecSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Gam(GamSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type vec(vecSEXP);
+    rcpp_result_gen = Rcpp::wrap(subset(Gam, vec));
+    return rcpp_result_gen;
+END_RCPP
+}
+// elim_ind
+Eigen::MatrixXd elim_ind(int n, Eigen::VectorXd ind);
+RcppExport SEXP _Rprobit_elim_ind(SEXP nSEXP, SEXP indSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type ind(indSEXP);
+    rcpp_result_gen = Rcpp::wrap(elim_ind(n, ind));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ll_macml_o_StSp
+NumericVector ll_macml_o_StSp(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List mod, Rcpp::List control);
+RcppExport SEXP _Rprobit_ll_macml_o_StSp(SEXP thetaSEXP, SEXP data_objSEXP, SEXP modSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type data_obj(data_objSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type control(controlSEXP);
+    rcpp_result_gen = Rcpp::wrap(ll_macml_o_StSp(theta, data_obj, mod, control));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pred_probit_ordered_approx_StSp
+Eigen::MatrixXd pred_probit_ordered_approx_StSp(Eigen::VectorXd theta, Eigen::MatrixXd Xn, Eigen::VectorXd yn, Rcpp::List mod, Eigen::VectorXd time, int quest, Eigen::VectorXd timen, Eigen::VectorXd questn);
+RcppExport SEXP _Rprobit_pred_probit_ordered_approx_StSp(SEXP thetaSEXP, SEXP XnSEXP, SEXP ynSEXP, SEXP modSEXP, SEXP timeSEXP, SEXP questSEXP, SEXP timenSEXP, SEXP questnSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Xn(XnSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type yn(ynSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mod(modSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< int >::type quest(questSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type timen(timenSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type questn(questnSEXP);
+    rcpp_result_gen = Rcpp::wrap(pred_probit_ordered_approx_StSp(theta, Xn, yn, mod, time, quest, timen, questn));
+    return rcpp_result_gen;
+END_RCPP
+}
+// maxEV
+double maxEV(Eigen::MatrixXf mat);
+RcppExport SEXP _Rprobit_maxEV(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXf >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(maxEV(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// param_to_system_R
+Rcpp::List param_to_system_R(Eigen::VectorXd param, int s, int n, int grad_bool, bool stationary);
+RcppExport SEXP _Rprobit_param_to_system_R(SEXP paramSEXP, SEXP sSEXP, SEXP nSEXP, SEXP grad_boolSEXP, SEXP stationarySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type param(paramSEXP);
+    Rcpp::traits::input_parameter< int >::type s(sSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type grad_bool(grad_boolSEXP);
+    Rcpp::traits::input_parameter< bool >::type stationary(stationarySEXP);
+    rcpp_result_gen = Rcpp::wrap(param_to_system_R(param, s, n, grad_bool, stationary));
+    return rcpp_result_gen;
+END_RCPP
+}
+// solve_Lyapunov_equation
+Eigen::MatrixXd solve_Lyapunov_equation(Eigen::MatrixXd A, Eigen::VectorXd vQ);
+RcppExport SEXP _Rprobit_solve_Lyapunov_equation(SEXP ASEXP, SEXP vQSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type vQ(vQSEXP);
+    rcpp_result_gen = Rcpp::wrap(solve_Lyapunov_equation(A, vQ));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculate_observability
+Eigen::MatrixXd calculate_observability(Eigen::MatrixXd A, Eigen::MatrixXd C, Eigen::VectorXd dtime);
+RcppExport SEXP _Rprobit_calculate_observability(SEXP ASEXP, SEXP CSEXP, SEXP dtimeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type C(CSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type dtime(dtimeSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculate_observability(A, C, dtime));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculate_deriv_observability
+Eigen::MatrixXd calculate_deriv_observability(Eigen::MatrixXd A, Eigen::MatrixXd C, Eigen::MatrixXd dA, Eigen::MatrixXd dC, Eigen::VectorXd dtime);
+RcppExport SEXP _Rprobit_calculate_deriv_observability(SEXP ASEXP, SEXP CSEXP, SEXP dASEXP, SEXP dCSEXP, SEXP dtimeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type C(CSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type dA(dASEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type dC(dCSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type dtime(dtimeSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculate_deriv_observability(A, C, dA, dC, dtime));
+    return rcpp_result_gen;
+END_RCPP
+}
 // biv_normal_cdf
 double biv_normal_cdf(double x0, double x1, double r12);
 RcppExport SEXP _Rprobit_biv_normal_cdf(SEXP x0SEXP, SEXP x1SEXP, SEXP r12SEXP) {
@@ -511,6 +744,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// int2bin
+Eigen::VectorXd int2bin(int num, int noBits);
+RcppExport SEXP _Rprobit_int2bin(SEXP numSEXP, SEXP noBitsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type num(numSEXP);
+    Rcpp::traits::input_parameter< int >::type noBits(noBitsSEXP);
+    rcpp_result_gen = Rcpp::wrap(int2bin(num, noBits));
+    return rcpp_result_gen;
+END_RCPP
+}
 // vechor
 Eigen::MatrixXd vechor(int k);
 RcppExport SEXP _Rprobit_vechor(SEXP kSEXP) {
@@ -553,6 +798,28 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type r(rSEXP);
     Rcpp::traits::input_parameter< int >::type c(cSEXP);
     rcpp_result_gen = Rcpp::wrap(commmat(r, c));
+    return rcpp_result_gen;
+END_RCPP
+}
+// identity
+Eigen::MatrixXd identity(int n);
+RcppExport SEXP _Rprobit_identity(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(identity(n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vectorize
+Eigen::VectorXd vectorize(Eigen::MatrixXd Q);
+RcppExport SEXP _Rprobit_vectorize(SEXP QSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type Q(QSEXP);
+    rcpp_result_gen = Rcpp::wrap(vectorize(Q));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -634,17 +901,17 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rprobit_SJ_hess_new", (DL_FUNC) &_Rprobit_SJ_hess_new, 2},
     {"_Rprobit_TVBS", (DL_FUNC) &_Rprobit_TVBS, 3},
     {"_Rprobit_TVBS_p", (DL_FUNC) &_Rprobit_TVBS_p, 3},
-    {"_Rprobit_TVBS_pmvnorm_cpp", (DL_FUNC) &_Rprobit_TVBS_pmvnorm_cpp, 3},
     {"_Rprobit_TVBS_v2", (DL_FUNC) &_Rprobit_TVBS_v2, 3},
     {"_Rprobit_TVBS_pv2", (DL_FUNC) &_Rprobit_TVBS_pv2, 3},
     {"_Rprobit_TVBS_grad", (DL_FUNC) &_Rprobit_TVBS_grad, 3},
     {"_Rprobit_TVBS_hess_new", (DL_FUNC) &_Rprobit_TVBS_hess_new, 2},
+    {"_Rprobit_TVBS_pmvnorm_cpp", (DL_FUNC) &_Rprobit_TVBS_pmvnorm_cpp, 3},
     {"_Rprobit_ll_macml_marginal", (DL_FUNC) &_Rprobit_ll_macml_marginal, 4},
     {"_Rprobit_ll_macml", (DL_FUNC) &_Rprobit_ll_macml, 4},
     {"_Rprobit_ll_probit", (DL_FUNC) &_Rprobit_ll_probit, 4},
-    {"_Rprobit_cal_choice_probs_1_nograd", (DL_FUNC) &_Rprobit_cal_choice_probs_1_nograd, 7},
     {"_Rprobit_pred_probit_approx", (DL_FUNC) &_Rprobit_pred_probit_approx, 4},
     {"_Rprobit_ll_macml_LC", (DL_FUNC) &_Rprobit_ll_macml_LC, 4},
+    {"_Rprobit_choice_probs_nonpara", (DL_FUNC) &_Rprobit_choice_probs_nonpara, 4},
     {"_Rprobit_int2cats", (DL_FUNC) &_Rprobit_int2cats, 3},
     {"_Rprobit_ll_probit_person", (DL_FUNC) &_Rprobit_ll_probit_person, 5},
     {"_Rprobit_ll_probit_contrib_R", (DL_FUNC) &_Rprobit_ll_probit_contrib_R, 5},
@@ -655,6 +922,23 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rprobit_ll_macml_o", (DL_FUNC) &_Rprobit_ll_macml_o, 4},
     {"_Rprobit_prob_ordered", (DL_FUNC) &_Rprobit_prob_ordered, 6},
     {"_Rprobit_pred_probit_ordered_approx", (DL_FUNC) &_Rprobit_pred_probit_ordered_approx, 4},
+    {"_Rprobit_param_to_system_AR_R", (DL_FUNC) &_Rprobit_param_to_system_AR_R, 4},
+    {"_Rprobit_build_system_from_model_AR_R", (DL_FUNC) &_Rprobit_build_system_from_model_AR_R, 3},
+    {"_Rprobit_build_derived_system_from_model_AR", (DL_FUNC) &_Rprobit_build_derived_system_from_model_AR, 4},
+    {"_Rprobit_ll_macml_o_AR", (DL_FUNC) &_Rprobit_ll_macml_o_AR, 4},
+    {"_Rprobit_pred_probit_ordered_approx_AR", (DL_FUNC) &_Rprobit_pred_probit_ordered_approx_AR, 8},
+    {"_Rprobit_build_system_from_model_R", (DL_FUNC) &_Rprobit_build_system_from_model_R, 3},
+    {"_Rprobit_build_derived_system_from_model", (DL_FUNC) &_Rprobit_build_derived_system_from_model, 4},
+    {"_Rprobit_get_observation_indices", (DL_FUNC) &_Rprobit_get_observation_indices, 4},
+    {"_Rprobit_subset", (DL_FUNC) &_Rprobit_subset, 2},
+    {"_Rprobit_elim_ind", (DL_FUNC) &_Rprobit_elim_ind, 2},
+    {"_Rprobit_ll_macml_o_StSp", (DL_FUNC) &_Rprobit_ll_macml_o_StSp, 4},
+    {"_Rprobit_pred_probit_ordered_approx_StSp", (DL_FUNC) &_Rprobit_pred_probit_ordered_approx_StSp, 8},
+    {"_Rprobit_maxEV", (DL_FUNC) &_Rprobit_maxEV, 1},
+    {"_Rprobit_param_to_system_R", (DL_FUNC) &_Rprobit_param_to_system_R, 5},
+    {"_Rprobit_solve_Lyapunov_equation", (DL_FUNC) &_Rprobit_solve_Lyapunov_equation, 2},
+    {"_Rprobit_calculate_observability", (DL_FUNC) &_Rprobit_calculate_observability, 3},
+    {"_Rprobit_calculate_deriv_observability", (DL_FUNC) &_Rprobit_calculate_deriv_observability, 5},
     {"_Rprobit_biv_normal_cdf", (DL_FUNC) &_Rprobit_biv_normal_cdf, 3},
     {"_Rprobit_biv_normal_pdf", (DL_FUNC) &_Rprobit_biv_normal_pdf, 3},
     {"_Rprobit_Hess_pdf", (DL_FUNC) &_Rprobit_Hess_pdf, 3},
@@ -664,10 +948,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rprobit_grad_gen_tvn_cdf", (DL_FUNC) &_Rprobit_grad_gen_tvn_cdf, 2},
     {"_Rprobit_Hessian_gen_tvn_cdf", (DL_FUNC) &_Rprobit_Hessian_gen_tvn_cdf, 2},
     {"_Rprobit_duplmat", (DL_FUNC) &_Rprobit_duplmat, 1},
+    {"_Rprobit_int2bin", (DL_FUNC) &_Rprobit_int2bin, 2},
     {"_Rprobit_vechor", (DL_FUNC) &_Rprobit_vechor, 1},
     {"_Rprobit_fdiag", (DL_FUNC) &_Rprobit_fdiag, 1},
     {"_Rprobit_vechor_diag", (DL_FUNC) &_Rprobit_vechor_diag, 1},
     {"_Rprobit_commmat", (DL_FUNC) &_Rprobit_commmat, 2},
+    {"_Rprobit_identity", (DL_FUNC) &_Rprobit_identity, 1},
+    {"_Rprobit_vectorize", (DL_FUNC) &_Rprobit_vectorize, 1},
     {"_Rprobit_elimmat", (DL_FUNC) &_Rprobit_elimmat, 1},
     {"_Rprobit_J_chol", (DL_FUNC) &_Rprobit_J_chol, 1},
     {"_Rprobit_prob_ordered_2", (DL_FUNC) &_Rprobit_prob_ordered_2, 5},

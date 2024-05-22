@@ -1,17 +1,29 @@
 #' Build model parameters from mod-object and compute standard errors
 #'
 #' @description
-#' This function builds model parameters from mod object and computes
+#' This function builds model parameters from a \code{mod} object and computes
 #' standard errors using the Delta method.
 #'
+#' @details
+#' TODO: The Delta method...
+#'
 #' @param theta
-#' real vector containing parameters (\code{theta}-object)
+#' A \code{numeric} vector containing model parameters.
 #' @param mod
-#' A \code{\link{mod_cl}} object.
+#' An object of class \code{\link{mod_cl}}.
 #' @param variances
-#' Real matrix of variances (if \code{NA} (default), no standard errors are calculated)
+#' A \code{matrix} of parameter variances.
+#' By default, \code{variances = NA}, in which case no standard errors are
+#' calculated.
 #' @param labels
-#' optional: list with two entries: vars: list of strings with names for regressor variables; cats: list of category names
+#' A \code{list} with two elements:
+#' - \code{vars}, a \code{list} of \code{characters}, which are names for the
+#'                regressor variables,
+#' - \code{cats}, a \code{list} of \code{characters}, which are names for the
+#'                categories.
+#'
+#' By default, \code{labels = NULL}, in which case the regressors and categories
+#' are not named.
 #'
 #' @return A \code{list} containing the following elements:
 #' \item{b}{b}
@@ -22,15 +34,17 @@
 #' \item{Sigma_chol}{Sigma_chol}
 #' \item{Sigma}{Sigma}
 #' \item{Sigma_sd}{Sigma_sd}
-#' 
+#'
 #' @keywords internal
+#'
+#' @importFrom matrixcalc elimination.matrix
 
 build_par_from_mod <- function(theta, mod, variances = NA, labels = NULL) {
-
+  
   ### build 'b' and calculate standard errors
   Hb <- mod$Hb
   fb <- mod$fb
-  if (mod$lthb>0){
+  if (mod$lthb > 0){
     b <- Hb %*% theta[1:mod$lthb] + fb
     if (!any(is.na(variances))) {
       vb <- Hb %*% variances[1:mod$lthb, 1:mod$lthb] %*% t(Hb)
@@ -42,7 +56,9 @@ build_par_from_mod <- function(theta, mod, variances = NA, labels = NULL) {
     b <- fb
     b_sd = NULL
   }
-  ### build 'Omega' (0 entries for coefficients without random effect) and calculate standard errors
+  
+  ### build 'Omega' and calculate standard errors
+  ### (0 entries in 'Omega' for coefficients without random effect)
   lRE <- mod$lRE
   HO <- mod$HO
   fO <- mod$fO
@@ -53,7 +69,8 @@ build_par_from_mod <- function(theta, mod, variances = NA, labels = NULL) {
     Omega_chol_vech <- fO
   }
   if (lRE > 1) {
-    eO <- matrixcalc::elimination.matrix(lRE) ### auxiliary matrix to go from vech(Omega) to vec(Omega)
+    ### auxiliary matrix to go from vech(Omega) to vec(Omega)
+    eO <- matrixcalc::elimination.matrix(lRE)
     Omega_chol[1:lRE, 1:lRE] <- matrix(t(eO) %*% (Omega_chol_vech), lRE, lRE)
   } else if (lRE == 1) {
     Omega_chol[1, 1] <- Omega_chol_vech
@@ -67,52 +84,71 @@ build_par_from_mod <- function(theta, mod, variances = NA, labels = NULL) {
   } else {
     Omega_sd <- NULL
   }
-
+  
   ### build 'Sigma' and calculate standard errors
   HL <- mod$HL
   fL <- mod$fL
-  if (mod$ordered == TRUE) {
+  if (mod$ordered) {
     nL <- round(-0.5 + sqrt(2 * length(fL) + 0.25))
   } else {
     nL <- mod$alt
   }
-
-
-  eL <- matrixcalc::elimination.matrix(nL)
-  if (mod$lthL > 0) {
-    Sigma_chol_vech <- HL %*% theta[(mod$lthb + mod$lthO + 1):(mod$lthb + mod$lthO + mod$lthL)] + fL
-    Sigma_chol <- matrix(t(eL) %*% (Sigma_chol_vech), nL, nL)
+  if (nL>1){
+    eL <- matrixcalc::elimination.matrix(nL)
+    if (mod$lthL > 0) {
+      Sigma_chol_vech <- HL %*% theta[(mod$lthb + mod$lthO + 1):(mod$lthb + mod$lthO + mod$lthL)] + fL
+      Sigma_chol <- matrix(t(eL) %*% (Sigma_chol_vech), nL, nL)
+    } else {
+      Sigma_chol <- matrix(t(eL) %*% (fL), nL, nL)
+    }
+    Sigma <- Sigma_chol %*% t(Sigma_chol)
+    if (!any(is.na(variances)) & (mod$lthL > 0)) {
+      ind_Sig_ch <- (mod$lthb + mod$lthO + 1):(mod$lthb + mod$lthO + mod$lthL)
+      sdsig <- calculate_delta(HL = mod$HL, fL = mod$fL, thL = theta[ind_Sig_ch], alt = nL, vv = variances[ind_Sig_ch, ind_Sig_ch])
+      Sigma_sd <- sdsig$Sigma_sd
+    } else {
+      Sigma_sd <- NULL
+    }
   } else {
-    Sigma_chol <- matrix(t(eL) %*% (fL), nL, nL)
+    if (mod$lthL > 0) {
+      Sigma_chol_vech <- HL %*% theta[(mod$lthb + mod$lthO + 1):(mod$lthb + mod$lthO + mod$lthL)] + fL
+      Sigma_chol <- matrix(Sigma_chol_vech, 1, 1)
+    } else {
+      Sigma_chol <- matrix(fL, 1, 1)
+    }
+    Sigma <- Sigma_chol %*% Sigma_chol
+    if (!any(is.na(variances)) & (mod$lthL > 0)) {
+      ind_Sig_ch <- (mod$lthb + mod$lthO + 1):(mod$lthb + mod$lthO + mod$lthL)
+      sdsig <- 2*Sigma_chol_vech[1,1]*sqrt(variances[ind_Sig_ch, ind_Sig_ch])
+      Sigma_sd <- sdsig
+    } else {
+      Sigma_sd <- NULL
+    }
   }
-  Sigma <- Sigma_chol %*% t(Sigma_chol)
-  if (!any(is.na(variances)) & (mod$lthL > 0)) {
-    ind_Sig_ch <- (mod$lthb + mod$lthO + 1):(mod$lthb + mod$lthO + mod$lthL)
-    sdsig <- calculate_delta(HL = mod$HL, fL = mod$fL, thL = theta[ind_Sig_ch], alt = nL, vv = variances[ind_Sig_ch, ind_Sig_ch])
-    Sigma_sd <- sdsig$Sigma_sd
-  } else {
-    Sigma_sd <- NULL
-  }
-
+  
   ##### add names to be variables
   if (!is.null(labels)) {
     if (length(labels[["vars"]]) == length(b)) {
       rownames(b) <- labels[["vars"]]
-      rownames(Sigma) <- labels[["cats"]]
-      colnames(Sigma) <- labels[["cats"]]
+      if (mod$ordered == FALSE){
+        rownames(Sigma) <- labels[["cats"]]
+        colnames(Sigma) <- labels[["cats"]]
+      }
       rownames(Omega) <- labels[["vars"]]
       colnames(Omega) <- labels[["vars"]]
-
+      
       if (!is.null(b_sd)) {
         rownames(b_sd) <- labels[["vars"]]
-        rownames(Sigma_sd) <- labels[["cats"]]
-        colnames(Sigma_sd) <- labels[["cats"]]
+        if (mod$ordered == FALSE){
+          rownames(Sigma_sd) <- labels[["cats"]]
+          colnames(Sigma_sd) <- labels[["cats"]]
+        }
         rownames(Omega_sd) <- labels[["vars"]]
         colnames(Omega_sd) <- labels[["vars"]]
       }
     }
   }
-
+  
   out <- list(
     "b" = b,
     "b_sd" = b_sd,
@@ -123,10 +159,10 @@ build_par_from_mod <- function(theta, mod, variances = NA, labels = NULL) {
     "Sigma" = Sigma,
     "Sigma_sd" = Sigma_sd
   )
-
+  
   ###### add tauk for ordered case
   if (mod$ordered) {
-    theta_tauk <- theta[(mod$lthb + mod$lthO + mod$lthL + 1):length(theta)]
+    theta_tauk <- theta[(mod$lthb + mod$lthO + mod$lthL + 1):(mod$lthb + mod$lthO + mod$lthL + mod$alt-1)]
     if (length(theta_tauk) != mod$alt - 1) {
       message("Length of parameters for tauk does not match mod$alt.")
     } else {
@@ -136,7 +172,9 @@ build_par_from_mod <- function(theta, mod, variances = NA, labels = NULL) {
       tauk <- cumsum(dtauk)
       out$tauk <- tauk
     }
+    
+    # state space system, if 
   }
-
+  
   return(out)
 }

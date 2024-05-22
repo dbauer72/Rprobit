@@ -82,17 +82,19 @@ control_cl <- R6::R6Class("control_cl",
       normalize = FALSE
     ) {
       stopifnot(is.list(control_nlm), is.logical(probit))
-      stopifnot(is.logical(hess))
-      stopifnot(is.logical(el))
+      stopifnot(is.logical(hess) | hess %in% c(0,1))
+      stopifnot(is.logical(el) | el %in% c(0,1))
       stopifnot(is.numeric(nCores), length(nCores) == 1, nCores > 0)
       stopifnot(is.logical(normalize) | is.list(normalize))
 
       self$control_nlm <- control_nlm
       self$probit <- probit
       self$approx_method <- approx_method
-      self$hess <- hess
+      #self$hess <- hess
+      self$hess <- as.logical(hess)
       self$pairs_list <- pairs_list
-      self$el <- el
+      #self$el <- el
+      self$el <- as.logical(el)
       self$control_weights <- control_weights
       self$control_simulation <- control_simulation
       self$nCores <- nCores
@@ -147,8 +149,8 @@ control_cl <- R6::R6Class("control_cl",
     #' Set hess
     #' @param val New hess
     set_hess = function(val) {
-      if (is.logical(val)) {
-        self$hess <- val
+      if (is.logical(val) | val %in% c(0,1)) {
+        self$hess <- as.logical(val)
       } else {
         cat("hess must be a boolean.")
       }
@@ -158,8 +160,8 @@ control_cl <- R6::R6Class("control_cl",
     #' Set el
     #' @param val New el
     set_el = function(val) {
-      if (is.logical(val)) {
-        self$el <- val
+      if (is.logical(val) | val %in% c(0,1)) {
+        self$el <- as.logical(val)
       } else {
         cat("el must be a boolean.")
       }

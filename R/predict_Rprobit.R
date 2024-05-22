@@ -71,52 +71,65 @@ predict_Rprobit <- function(Rprobit_obj, data_new = NULL, all_pred = FALSE) {
 
     if (inherits(data_new, "data_raw_cl")) {
       
-      
-      if (Rprobit_o$mod$ordered){
-        data_raw_obj = data_new
-        data = data_cl$new(ordered = TRUE,vars = data_raw_obj$dec_char)
-        ids = data_raw_obj$df[,data_raw_obj$id]
-        unique_ids = unique(ids)
-        data_df = list()
-        for (j in 1:length(unique_ids)){
-          ind = which(ids == unique_ids[j])
-          data_df[[j]] = list(X = data.matrix(data_raw_obj$df[ind,data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind,data_raw_obj$choice]))
-        }
-        #vars = allvars[[1]]
-        #alt_names = NULL
-        data$set_data(data_df)
-        Rprobit_o$data <- data
-      } else {
+      # no distinction needed anymore
+      #if (Rprobit_o$mod$ordered){
+      #  data_raw_obj = data_new
+      #  data = data_cl$new(ordered = TRUE,vars = data_raw_obj$dec_char)
+      #  ids = data_raw_obj$df[,data_raw_obj$id]
+      #  unique_ids = unique(ids)
+      #  data_df = list()
+      #  for (j in 1:length(unique_ids)){
+      #    ind = which(ids == unique_ids[j])
+      #    data_df[[j]] = list(X = data.matrix(data_raw_obj$df[ind,data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind,data_raw_obj$choice]))
+      #  }
+      #  #vars = allvars[[1]]
+      #  #alt_names = NULL
+      #  data$set_data(data_df)
+      #  Rprobit_o$data <- data
+      #} else {
         Rprobit_o$data <- data_from_data_raw_model(Rprobit_o)
-      }
+      #}
       
       #Rprobit_o$data_raw <- data_new
       #Rprobit_o$data <- data_from_data_raw_model(Rprobit_o)
     }
   } else if (is.null(Rprobit_o[["data"]]) & !is.null(Rprobit_o[["data_raw"]])) {
-    if (Rprobit_o$mod$ordered) {
-      data_raw_obj <- Rprobit_o$data_raw$clone()
-      data <- data_cl$new(ordered = TRUE, vars = data_raw_obj$dec_char)
-      ids <- data_raw_obj$df[, data_raw_obj$id]
-      unique_ids <- unique(ids)
-      data_df <- list()
-      for (j in 1:length(unique_ids)) {
-        ind <- which(ids == unique_ids[j])
-        data_df[[j]] <- list(X = data.matrix(data_raw_obj$df[ind, data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind, data_raw_obj$choice]))
-      }
-      # vars = allvars[[1]]
-      # alt_names = NULL
-      data$set_data(data_df)
-      Rprobit_o$data <- data
-    } else {
-      Rprobit_o$data <- data_from_data_raw_model(Rprobit_obj)
-    }
+    #if (Rprobit_o$mod$ordered) {
+    #  data_raw_obj <- Rprobit_o$data_raw$clone()
+    #  data <- data_cl$new(ordered = TRUE, vars = data_raw_obj$dec_char)
+    #  ids <- data_raw_obj$df[, data_raw_obj$id]
+    #  unique_ids <- unique(ids)
+    #  data_df <- list()
+    #  for (j in 1:length(unique_ids)) {
+    #    ind <- which(ids == unique_ids[j])
+    #    data_df[[j]] <- list(X = data.matrix(data_raw_obj$df[ind, data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind, data_raw_obj$choice]))
+    #  }
+    #  # vars = allvars[[1]]
+    #  # alt_names = NULL
+    #  data$set_data(data_df)
+    #  Rprobit_o$data <- data
+    #} else {
+      Rprobit_o$data <- data_from_data_raw_model(Rprobit_o)
+    #}
 
 
     # Rprobit_obj$mod$Tp = Rprobit_obj$data$Tp
   }
 
+  ### calculate grid points and corresponding probabilities 
+  if (inherits(Rprobit_o$mod,"mod_nonpara_cl")){
+    grid_points = Rprobit_o$mod$params
+    probs = calculate_grid_probs(Rprobit_o$mod,Rprobit_o$theta)
+  } else {
+    grid_points = matrix(Rprobit_o$theta,ncol=1)
+    probs = 1
+  }
+  
+  
   ### predict
+  if (inherits(Rprobit_o$mod,"mod_StSp_cl")){
+    time <- Rprobit_o$data$time
+  }
   predictions <- matrix(NA, 0, Rprobit_o$mod$alt)
   choices <- numeric(0)
   for (n in 1:length(Rprobit_o$data$Tp)) {
@@ -125,11 +138,21 @@ predict_Rprobit <- function(Rprobit_obj, data_new = NULL, all_pred = FALSE) {
     data_n <- Rprobit_o$data$data[[n]]
 
     if (Rprobit_o$mod$ordered == FALSE) {
-      pred_n <- pred_probit_approx(Rprobit_o$theta, data_n, Rprobit_o$mod, Rprobit_o$control$approx_method)
+      pred_n <- matrix(0, length(data_n$y), Rprobit_o$mod$alt)
+      for (jj in 1:length(probs)){
+        pred_n <- pred_n + probs[jj]*pred_probit_approx(grid_points[,jj], data_n, Rprobit_o$mod, Rprobit_o$control$approx_method)
+      }
       predictions <- rbind(predictions, pred_n)
     } else {
-      pred_n <- pred_probit_ordered_approx(Rprobit_o$theta, data_n$X, data_n$y, Rprobit_o$mod)
-
+      if (inherits(Rprobit_o$mod,"mod_StSp_cl")){
+        pred_n <- pred_probit_ordered_approx_StSp(Rprobit_o$theta, data_n$X, data_n$y, Rprobit_o$mod, Rprobit_o$data$time, Rprobit_o$data$quest, data_n$time, data_n$quest)
+      } else {
+        if (inherits(Rprobit_o$mod,"mod_AR_cl")){
+          pred_n <- pred_probit_ordered_approx_AR(Rprobit_o$theta, data_n$X, data_n$y, Rprobit_o$mod, Rprobit_o$data$time, Rprobit_o$data$quest, data_n$time, data_n$quest)
+        } else {
+          pred_n <- pred_probit_ordered_approx(Rprobit_o$theta, data_n$X, data_n$y, Rprobit_o$mod)
+        }
+      }
       predictions <- rbind(predictions, pred_n)
     }
 

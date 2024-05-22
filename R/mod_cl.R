@@ -6,7 +6,7 @@
 #' @export
 
 mod_cl <- R6::R6Class("mod_cl",
-  # private fields are derived from others
+
   private = list(
     .lthb = 0,
     .lthO = 0,
@@ -40,7 +40,7 @@ mod_cl <- R6::R6Class("mod_cl",
       }
     },
 
-    #' @field lRE number of random coefficients
+    #' @field lRE number of random beta coefficients
     lRE = function(value) {
       if (missing(value)) {
         private$.lRE
@@ -58,7 +58,7 @@ mod_cl <- R6::R6Class("mod_cl",
       }
     },
 
-    #' @field fb vector of fixed params for beta
+    #' @field fb vector of fixed parameters for beta
     fb = function(value) {
       if (missing(value)) {
         private$.fb
@@ -118,7 +118,9 @@ mod_cl <- R6::R6Class("mod_cl",
       } else {
         stopifnot(is.matrix(value))
         private$.HL <- value
-        self$alt <- -0.5 + sqrt(0.25 + 2 * dim(value)[1])
+        if (self$ordered == FALSE) {
+          self$alt <- round(-0.5 + sqrt(2 * dim(self$HL)[1] + 0.25))
+        }
         private$.lthL <- dim(value)[2]
       }
     }
@@ -129,11 +131,11 @@ mod_cl <- R6::R6Class("mod_cl",
     #' @field alt number of alternatives
     alt = 2,
 
-    #' @field ordered Boolean: data ordered choices?
+    #' @field ordered \code{TRUE} for ordered choices and \code{FALSE} else
     ordered = FALSE,
 
     #' @description  initialization function
-    ##' @param Tp number of choices per decider
+    #' @param Tp number of choices per decider
     #' @param Hb matrix
     #' @param fb vector
     #' @param HO matrix
@@ -141,11 +143,13 @@ mod_cl <- R6::R6Class("mod_cl",
     #' @param HL matrix
     #' @param fL vector
     #' @param alt number of alternatives
-    #' @param ordered Boolean: ordered choice?
+    #' @param ordered \code{TRUE} for ordered choices and \code{FALSE} else
+    #' @param validate \code{TRUE} to validate specification
+    #' @param check_identifiability \code{TRUE} to check for identifiability
     initialize = function(
       Hb = matrix(0, 0, 0), fb = matrix(0, 0, 0), HO = matrix(0, 0, 0),
       fO = matrix(0, 0, 0), HL = matrix(0, 0, 0), fL = matrix(0, 0, 0),
-      alt = 2, ordered = FALSE
+      alt = 2, ordered = FALSE, validate = TRUE, check_identifiability = FALSE
     ) {
 
       stopifnot(is.matrix(Hb))
@@ -155,7 +159,9 @@ mod_cl <- R6::R6Class("mod_cl",
       stopifnot(is.matrix(HL))
       stopifnot(is.matrix(fL))
       stopifnot(is.numeric(alt))
-      stopifnot(is.logical(ordered))
+      stopifnot(isTRUE(ordered) || isFALSE(ordered))
+      stopifnot(isTRUE(validate) || isFALSE(validate))
+      stopifnot(isTRUE(check_identifiability) || isFALSE(check_identifiability))
 
       private$.lthb <- dim(Hb)[2]
       private$.lthO <- dim(HO)[2]
@@ -175,21 +181,32 @@ mod_cl <- R6::R6Class("mod_cl",
         self$alt <- round(-0.5 + sqrt(2 * dim(self$HL)[1] + 0.25))
       }
       self$ordered <- ordered
+
+      if (validate) self$validate()
+      if (check_identifiability) check_identifiability(self)
     },
 
-    #' @description validates if parameters are conformable.
+    #' @description validates if parameters are conformable
     validate = function() {
-      # checks if dimensions match
       if (dim(self$Hb)[1] != dim(self$fb)[1]) {
-        warning("Dimensions of Hb and fb do not match. Resizing fb")
+        warning(
+          "Dimensions of Hb and fb do not match. Resizing fb.",
+          call. = FALSE
+        )
         self$fb <- matrix(0, dim(self$Hb)[1], 1)
       }
       if (dim(self$HO)[1] != dim(self$fO)[1]) {
-        warning("Dimensions of HO and fO do not match. Resizing fb")
+        warning(
+          "Dimensions of HO and fO do not match. Resizing fO.",
+          call. = FALSE
+        )
         self$fO <- matrix(0, dim(self$HO)[1], 1)
       }
       if (dim(self$HL)[1] != dim(self$fL)[1]) {
-        warning("Dimensions of HL and fL do not match. Resizing fb")
+        warning(
+          "Dimensions of HL and fL do not match. Resizing fL.",
+          call. = FALSE
+        )
         self$fL <- matrix(0, dim(self$HL)[1], 1)
       }
     },
@@ -213,8 +230,12 @@ mod_cl <- R6::R6Class("mod_cl",
     print = function() {
       cat("mod object:\n")
       cat("\n")
-      cat(sprintf("alt: %d, lthb: %d, lRE: %d, lthO: %d, lthL: %d \n",
-                  self$alt, private$.lthb, private$.lRE, private$.lthO, private$.lthL))
+      cat(
+        sprintf(
+          "alt: %d, lthb: %d, lRE: %d, lthO: %d, lthL: %d \n",
+          self$alt, private$.lthb, private$.lRE, private$.lthO, private$.lthL
+        )
+      )
       cat("\n")
       cat("b (Hb, fb): \n")
       print_est(self$Hb)

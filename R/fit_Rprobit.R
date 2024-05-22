@@ -185,7 +185,18 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
     }
   }
 
-  if(Rprobit_o$mod$ordered == TRUE) ll_function <- ll_macml_o
+  # for ordered probit, use different CML implementations 
+  if(Rprobit_o$mod$ordered == TRUE){ # if error includes state space autocorrelation 
+    if (inherits(mod_orig,"mod_StSp_cl")){ 
+      ll_function <- ll_macml_o_StSp
+    } else {  # else no autocorrelation. 
+      if (inherits(mod_orig,"mod_AR_cl")){ 
+        ll_function <- ll_macml_o_AR
+      } else {
+        ll_function <- ll_macml_o
+      }
+    }
+  } 
 
 
   ### define functions for parallel setup
@@ -307,9 +318,9 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
       if (!is.null(Rprobit_o$control$el)) {
         el <- Rprobit_o$control$el
       }
-      if (el == TRUE) {
+      if (el == TRUE | el == 1) {
         attr(ll_par, "gradEL") <- list()
-        attr(ll_par, "HessEL") <- list()
+        #attr(ll_par, "HessEL") <- list()
       }
 
       ###
@@ -321,9 +332,13 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
             attr(ll_par, attr_ll[i_attr]) <- attr(ll_par, attr_ll[i_attr]) + attr(ll_list_par[[i_batch]], attr_ll[i_attr])
           }
         }
-        if (el == TRUE & "gradEL" %in% attr_ll & "HessEL" %in% attr_ll) {
+        if ((el == TRUE | el == 1) & "gradEL" %in% attr_ll) {
           for (i_attr_n in 1:length(attr(ll_list_par[[i_batch]], "gradEL"))) {
             attr(ll_par, "gradEL")[[Rprobit_batches_parallel_int[[i_batch]][i_attr_n]]] <- attr(ll_list_par[[i_batch]], "gradEL")[[i_attr_n]]
+          }
+        }
+        if ((el == TRUE | el == 1) & "HessEL" %in% attr_ll) {
+          for (i_attr_n in 1:length(attr(ll_list_par[[i_batch]], "gradEL"))) {
             attr(ll_par, "HessEL")[[Rprobit_batches_parallel_int[[i_batch]][i_attr_n]]] <- attr(ll_list_par[[i_batch]], "HessEL")[[i_attr_n]]
           }
         }
@@ -368,23 +383,24 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
 
       return(data_raw_to_data_out)
     }
-    if (Rprobit_o$mod$ordered){
-      data_raw_obj = Rprobit_o$data_raw$clone()
-      data = data_cl$new(ordered = TRUE,vars = data_raw_obj$dec_char)
-      ids = data_raw_obj$df[,data_raw_obj$id]
-      unique_ids = unique(ids)
-      data_df = list()
-      for (j in 1:length(unique_ids)){
-        ind = which(ids == unique_ids[j])
-        data_df[[j]] = list(X = data.matrix(data_raw_obj$df[ind,data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind,data_raw_obj$choice]))
-      }
-      #vars = allvars[[1]]
-      #alt_names = NULL
-      data$set_data(data_df)
-      Rprobit_o$data <- data
-    } else {
+    # no distinction necessary any more. 
+    #if (Rprobit_o$mod$ordered){
+    #  data_raw_obj = Rprobit_o$data_raw$clone()
+    #  data = data_cl$new(ordered = TRUE,vars = data_raw_obj$dec_char)
+    #  ids = data_raw_obj$df[,data_raw_obj$id]
+    #  unique_ids = unique(ids)
+    #  data_df = list()
+    #  for (j in 1:length(unique_ids)){
+    #    ind = which(ids == unique_ids[j])
+    #    data_df[[j]] = list(X = data.matrix(data_raw_obj$df[ind,data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind,data_raw_obj$choice]))
+    #  }
+    #  #vars = allvars[[1]]
+    #  #alt_names = NULL
+    #  data$set_data(data_df)
+    #  Rprobit_o$data <- data
+    #} else {
       Rprobit_o$data <- data_from_data_raw_model(Rprobit_o)
-    }
+    #}
   }
 
 
@@ -393,7 +409,7 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
     data_tr <- Rprobit_o$data$clone()
     data_tr$data <- substract_choice_regressor_from_data(Rprobit_o$data$data)
   } else {
-    data_tr <- Rprobit_o$data # for ordered probit there is no need to difference with respect to chosen alternative.
+    data_tr <- Rprobit_o$data$clone() # for ordered probit there is no need to difference with respect to chosen alternative.
   }
 
 
@@ -495,14 +511,24 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
     }
 
     #re_register_dopar(Rprobit_o = Rprobit_o, use_parallel = use_parallel)
+    # always initialize randomly
+    lth <- Rprobit_o$mod$lthb + Rprobit_o$mod$lthO + Rprobit_o$mod$lthL
+    #Rprobit_o$theta <- rnorm(lth)
     Rprobit_o$theta <- init_Rprobit(ll_function = ll_function, Rprobit_obj = Rprobit_o, init_method = init_method, data_tr = data_tr)
     ### check whether the dimension of theta matches the dimensions given in mod
     lth = Rprobit_o$mod$lthb + Rprobit_o$mod$lthO + Rprobit_o$mod$lthL
     if (Rprobit_o$mod$ordered == TRUE){
       lth = lth + Rprobit_o$mod$alt-1 # add parameters for tauk.
+      if (inherits(Rprobit_o$mod,"mod_StSp_cl")){
+        s = -0.5 + sqrt(2*dim(Rprobit_o$mod$fL)[1]+.25)
+        lth = lth+ 2*Rprobit_o$mod$dim_state*s
+      }
+      if (inherits(Rprobit_o$mod,"mod_AR_cl")){
+        lth = lth+ Rprobit_o$mod$lag_length
+      }
     }
     if (length(Rprobit_o$theta) != lth){
-      stop(paste0("Number of parameters does not match the structure of the mod object. "))
+      stop(paste0("Number of parameters does not match the structure of the mod object."))
     }
 
     ### perform numerical optimization and save results

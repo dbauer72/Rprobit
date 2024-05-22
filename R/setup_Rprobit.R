@@ -7,7 +7,7 @@
 #' @param data_raw
 #' \code{data_raw}-object
 #' @param mod
-#' A \code{\link{mod_cl}} or \code{\link{mod_latclass_cl}} object.
+#' A \code{\link{mod_cl}}, \code{\link{mod_latclass_cl}} or \code{\link{mod_StSp_cl}} object.
 #' @param norm_alt
 #' An \code{integer} that labels the alternative which's utility is set to zero
 #' (for normalization).
@@ -233,7 +233,7 @@ setup_Rprobit <- function(
     if (is.null(alt_names)) {
       alt_names <- levels(as.factor(data_raw$df[, data_raw$choice]))
     }
-    data_raw_obj = data_raw_cl$new(df = data_raw$df,alt_names = alt_names,id = "id_macml",choice = choice,varying =allvars[[1]], dec_char = allvars[[2]])
+    data_raw_obj = data_raw_cl$new(df = data_raw$df,alt_names = alt_names,id = "id_macml",choice = choice,varying =allvars[[1]], dec_char = allvars[[2]], ordered = data_raw$ordered)
 
 
     theta_0 <- sim_data_raw_out$theta_0
@@ -246,7 +246,7 @@ setup_Rprobit <- function(
   }
 
 
-  ### Normalise regressors in data_raw
+  ### Normalise regressors in data_raw, only for unordered data
 
   if (mod$ordered == FALSE) {
     data_raw_obj <- normalise_data(data_raw = data_raw_obj, normalisation = control_obj$normalize, allvars = allvars, ASC = ASC)
@@ -255,18 +255,19 @@ setup_Rprobit <- function(
 
     ### create 'data' from 'data_raw'
     # data = data_raw_to_data(data_raw = data_raw_obj, allvars = allvars, choice = choice, re = re, norm_alt = norm_alt, alt = mod$alt, ASC = ASC)
-  } else {
-    # for ordered data there is no difference between data_raw and data
-    data = data_cl$new(ordered = TRUE,vars = data_raw_obj$dec_char)
-    ids = data_raw_obj$df[,data_raw_obj$id]
-    unique_ids = unique(ids)
-    data_df = list()
-    for (j in 1:length(unique_ids)){
-      ind = which(ids == unique_ids[j])
-      data_df[[j]] = list(X = data.matrix(data_raw_obj$df[ind,data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind,data_raw_obj$choice]))
-    }
-    data$set_data(data_df)
-  }
+  } 
+#  else {
+#    # for ordered data there is no difference between data_raw and data
+#    data = data_cl$new(ordered = TRUE,vars = data_raw_obj$dec_char)
+#    ids = data_raw_obj$df[,data_raw_obj$id]
+#    unique_ids = unique(ids)
+#    data_df = list()
+#    for (j in 1:length(unique_ids)){
+#      ind = which(ids == unique_ids[j])
+#      data_df[[j]] = list(X = data.matrix(data_raw_obj$df[ind,data_raw_obj$dec_char]), y = data.matrix(data_raw_obj$df[ind,data_raw_obj$choice]))
+#    }
+#    data$set_data(data_df)
+#  }
 
   attr(x = data_raw, which = "ids") <- ids
 

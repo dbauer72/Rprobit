@@ -163,11 +163,11 @@ double TVBS_biv_std_norm_pdf(Eigen::VectorXd x, double rho)                 // c
 //' biv_normal_cdf
 //' @description
 //' The function computes the bivariate Gaussian CDF. 
-//' @param w0
+//' @param x0
 //' double; x-coordinate 
-//' @param w1
+//' @param x1
 //' double; y-coordinate 
-//' @param rho
+//' @param r12
 //' double; correlation
 //' @return 
 //' double; cdf 
@@ -195,11 +195,11 @@ double biv_normal_cdf(double x0, double x1, double r12)                         
 //' biv_normal_pdf
 //' @description
 //' The function computes the bivariate Gaussian PDF. 
-//' @param w0
+//' @param x0
 //' double; x-coordinate 
-//' @param w1
+//' @param x1
 //' double; y-coordinate 
-//' @param rho
+//' @param r12
 //' double; correlation
 //' @return 
 //' double; pdf 

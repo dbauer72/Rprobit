@@ -13,7 +13,7 @@ substract_choice_regressor_from_data <- function(data) {
       Xnt <- data_n$X[[t]]
       ynt <- as.numeric(data_n$y[t])
       Xntj <- Xnt[ynt, ]
-      Xnt <- Xnt[-ynt, ] - matrix(1, dim(Xnt)[1] - 1, 1) %*% Xntj
+      Xnt <- Xnt[-ynt, ,drop=FALSE] - matrix(1, dim(Xnt)[1] - 1, 1) %*% Xntj
       data_n$X[[t]] <- Xnt
     }
     data[[n]] <- data_n

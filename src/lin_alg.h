@@ -4,7 +4,9 @@
 
 using namespace Rcpp;
 
-
+Eigen::VectorXd int2bin(int num,int noBits);
+Eigen::VectorXd vectorize( Eigen::MatrixXd Q);
+Eigen::MatrixXd identity( int n);
 Eigen::MatrixXd duplmat( int n);
 Eigen::MatrixXd vechor(int k);
 Eigen::VectorXd fdiag(int k);

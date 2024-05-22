@@ -7,11 +7,11 @@
 biv_normal_cdf(x0, x1, r12)
 }
 \arguments{
-\item{w0}{double; x-coordinate}
+\item{x0}{double; x-coordinate}
 
-\item{w1}{double; y-coordinate}
+\item{x1}{double; y-coordinate}
 
-\item{rho}{double; correlation}
+\item{r12}{double; correlation}
 }
 \value{
 double; cdf

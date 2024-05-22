@@ -115,7 +115,8 @@ The function `predict_Rprobit` can be used in order to obtain the choice probabi
 
 ```{r, pred10-model-trainb}
 new_data$set_df(train_fit$data_raw$df[1:10,])
-(pr <- predict_Rprobit(train_fit,data_new = new_data, all_pred = TRUE))
+pr <- predict_Rprobit(train_fit,data_new = new_data, all_pred = TRUE)
+head(pr)
 ```
 The eighth prediction was in particular wrong: Here the model predicts choice 'B' while 'A' was chosen. The raw data for this observation reads like this: 
 
@@ -139,7 +140,7 @@ We demonstrate the first case in the following. Assume that a train company want
 data_new = data.frame("id" =1, "choiceid" = 1, "choice" = train_fit$data_raw$df[1,"choice"], "price_A" = 100,"price_B" = 100, "time_A" = 2, "time_B" = 2, "change_A"=0, "change_B" = 0, "comfort_A" = 1, "comfort_B"=1, "id_macml"= 1)
 data_new[2,] = data.frame("id" =1, "choiceid" = 1, "choice" = train_fit$data_raw$df[4,"choice"], "price_A" = 110,"price_B" = 100, "time_A" = 2, "time_B" = 2, "change_A"=0, "change_B" = 0, "comfort_A" = 1, "comfort_B"=1, "id_macml"= 1)
 new_data$set_df(data_new)
-predict_Rprobit(train_fit,  data_new = new_data, all_pred = TRUE)
+head(predict_Rprobit(train_fit,  data_new = new_data, all_pred = TRUE))
 ```
 
 However, offering a better comfort class compensates for the higher price and even results in a gain of 3.4\% market share:
@@ -148,6 +149,6 @@ However, offering a better comfort class compensates for the higher price and ev
 data_new = data.frame("id" =1, "choiceid" = 1, "choice" = train_fit$data_raw$df[1,"choice"], "price_A" = 100,"price_B" = 100, "time_A" = 2, "time_B" = 2, "change_A"=0, "change_B" = 0, "comfort_A" = 1, "comfort_B"=1, "id_macml"= 1)
 data_new[2,] = data.frame("id" =1, "choiceid" = 1, "choice" = train_fit$data_raw$df[4,"choice"], "price_A" = 110,"price_B" = 100, "time_A" = 2, "time_B" = 2, "change_A"=0, "change_B" = 0, "comfort_A" = 0, "comfort_B"=1, "id_macml"= 1)
 new_data$set_df(data_new)
-predict_Rprobit(train_fit,  data_new = new_data, all_pred = TRUE)
+head(predict_Rprobit(train_fit,  data_new = new_data, all_pred = TRUE))
 ```
 

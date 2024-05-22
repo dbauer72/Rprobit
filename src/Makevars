@@ -7,8 +7,8 @@
 ## But for standard builds without external dependencies, nothing is needed
 
 #CXX_STD = CXX11
-#CXXFLAGS+= -Wa,-mbig-obj, -S  -Wno-ignored-attributes
+#CXXFLAGS+= -Wa,-mbig-obj  #, -S  -Wno-ignored-attributes
 #CXX11FLAGS+= -Wa,-mbig-obj -Wno-ignored-attributes -fopenmp
 #CXX14FLAGS+= -Wa,-mbig-obj -Wno-ignored-attributes
-#PKG_CXXFLAGS += $(SHLIB_OPENMP_CXXFLAGS)
+#PKG_CXXFLAGS += -Wa,-mbig-obj #$(SHLIB_OPENMP_CXXFLAGS)
 #PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)

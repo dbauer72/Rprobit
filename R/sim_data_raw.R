@@ -115,7 +115,8 @@ sim_data_raw <- function(
     Tp <- Tp[1]
     data_raw_df <- data.frame()
     data_raw <- data_raw_cl$new(choice = "choice", id = "id_macml")
-
+    data_raw$ordered <- mod$ordered
+    
     ### extract category bounds
     par <- par_all[[1]]
     tauk <- par$tauk
@@ -147,6 +148,7 @@ sim_data_raw <- function(
     }
     ### end for n in 1:N
     data_raw$set_df(data_raw_df)
+    data_raw$ordered <- mod$ordered
     data <- data_raw_to_data(data_raw = data_raw, allvars = allvars, choice = choice, re = re, norm_alt = 1, alt = alt, ASC = ASC)    
     
   } else {
@@ -288,7 +290,8 @@ sim_data_raw <- function(
     data_raw$id <- "id_macml"
     data_raw$choice <- "choice"
     data_raw$set_df(data_raw_df)
-         
+    data_raw$ordered <- mod$ordered
+    
         #data_raw_df <- rbind(data_raw_df, data_raw_nt)
     # convert raw_data to data for drawing choices. 
     data <- data_raw_to_data(data_raw = data_raw, allvars = allvars, choice = choice, re = re, norm_alt = 1, alt = alt, ASC = ASC)    
@@ -386,6 +389,7 @@ sim_data_raw <- function(
   }
   data_raw$class_member <- class_member
   data$class_member <- class_member
+  
   
   return(list("data_raw" = data_raw, "data" = data, "theta_0" = theta))
 }

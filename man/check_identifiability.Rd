@@ -2,19 +2,66 @@
 % Please edit documentation in R/check_identifiability.R
 \name{check_identifiability}
 \alias{check_identifiability}
-\title{Test for identifiability of a model}
+\title{Test for model identifiability}
 \usage{
-check_identifiability(mod, tol = 0.001)
+check_identifiability(mod, tol = 1e-06)
 }
 \arguments{
-\item{mod}{\code{mod}-object}
+\item{mod}{An object of class \code{\link{mod_cl}}.}
 
-\item{tol}{A real; describes the tolerance in the check. If the determinant changes less than 'tol', the system might be not identifiable.
-By default  \code{tol = 0.001}}
+\item{tol}{A positive \code{numeric} to define the check tolerance.
+By default, \code{tol = 1e-6}.}
 }
 \value{
-boolean ok: FALSE if a reason for non-identifiability is found.
+Either
+\itemize{
+\item \code{TRUE} (model seems identifiable) or
+\item \code{FALSE} (a reason for non-identifiability is found).
+}
 }
 \description{
-Function that tests whether a given model specification might be identifiable.
+This function tests whether a given model specification seems identifiable.
+}
+\examples{
+### this model is not identified (beta_3 = beta_1 + beta_2, all estimated)
+mod1 <- mod_cl$new(
+  Hb  = matrix(c(1, 0, 1, 0, 1, 1, 0, 0, 0), nrow = 3, ncol = 3),
+  fb  = matrix(c(0, 0, 0), ncol = 1),
+  HO  = matrix(0, 0, 0),
+  fO  = matrix(0, 0, 0),
+  HL  = matrix(0, nrow = 3, ncol = 0),
+  fL  = matrix(c(0, 0, 1), ncol = 1),
+  alt = 2
+)
+check_identifiability(mod1)
+
+### not estimating beta_3 makes the model identified
+mod2 <- mod1$clone()
+mod2$Hb <- matrix(c(1, 0, 1, 0, 1, 1), nrow = 3, ncol = 2)
+check_identifiability(mod2)
+
+### this model is not identified (no scale restriction)
+mod3 <- mod_cl$new(
+  Hb  = diag(2),
+  fb  = matrix(c(0, 0), ncol = 1),
+  HO  = matrix(0, 0, 0),
+  fO  = matrix(0, 0, 0),
+  HL  = diag(3),
+  fL  = as.matrix(c(0, 0, 0), ncol = 1),
+  alt = 2
+)
+check_identifiability(mod3)
+
+### fixing one beta entry ensures identifiability
+mod4 <- mod3$clone()
+mod4$Hb <- matrix(c(0, 1), ncol = 1)
+mod4$fb <- matrix(c(1, 0), ncol = 1)
+check_identifiability(mod4)
+
+### also fixing one Sigma entry ensures identifiability
+mod5 <- mod3$clone()
+mod5$HL <- matrix(0, nrow = 3, ncol = 0)
+mod5$fL <- matrix(c(0, 0, 1), ncol = 1)
+check_identifiability(mod5)
+
 }

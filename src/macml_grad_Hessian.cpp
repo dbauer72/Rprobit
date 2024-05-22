@@ -1,4 +1,3 @@
-
 #include <RcppEigen.h>
 #include <omp.h>
 
@@ -221,11 +220,11 @@ Eigen::MatrixXd J_theta(Eigen::MatrixXd X, Eigen::VectorXd b, Eigen::MatrixXd si
       
       if((ind((j-k),0)==i) & (ind((j-k),1)!=i)){   
         
-        J(j,id[i]) = (sigma(ind((j-k),0),ind((j-k),1))/sqsig[ind((j-k),1)])*-0.5*ssig[i];
+        J(j,(int)id[i]) = (sigma((int)ind((j-k),0),(int)ind((j-k),1))/sqsig[ind((j-k),1)])*-0.5*ssig[i];
       }
       
       if((ind((j-k),1)==i) & (ind((j-k),0)!=i)){
-        J(j,id[i]) = (sigma(ind((j-k),0),ind((j-k),1))/sqsig[ind((j-k),0)])*(-0.5*ssig[i]);
+        J(j,(int)id[i]) = (sigma((int)ind((j-k),0),(int)ind((j-k),1))/sqsig[(int)ind((j-k),0)])*(-0.5*ssig[i]);
       }
       
     }
@@ -295,34 +294,34 @@ Eigen::MatrixXd H_theta(Eigen::MatrixXd X, Eigen::VectorXd b, Eigen::MatrixXd si
       
       H.block(bb,dd[i]+n, n, 1) = ((-1)*X.row(i)*(-0.5*ssig15[i])).transpose();
       H.block(dd[i]+n+bb,0, 1, n) = ((-1)*X.row(i)*(-0.5*ssig15[i]));
-      H((dd[i]+n+bb),(dd[i]+n)) = (kk[i])*((0.75)*ssig25[i]);
+      H((int)(dd[i]+n+bb),(int)(dd[i]+n)) = (kk[i])*((0.75)*ssig25[i]);
       
     } else {
       
       int od = (i -k) + 1 + ind((i-k),1); //off-diagnal entry (shifted from the original index by the diags, hence 1 plus the number of cols) 
-      int d1 = dd(ind((i-k),1)); //diag entries corresponding to the off-diagnal entry 
-      int d2 = dd(ind((i-k),0));
+      int d1 = dd[ind((i-k),1)]; //diag entries corresponding to the off-diagnal entry 
+      int d2 = dd[ind((i-k),0)];
       
       //d od/d d1 (d1 and d2 are diags)
-      H(bb+n+od, n+d1) = ssigma(ind1(d2,0), ind1(d2,0)) *(-0.5)*ssigma15(ind1(d1,0), ind1(d1,0));
+      H(bb+n+od, n+d1) = ssigma((int)ind1(d2,0), (int)ind1(d2,0)) *(-0.5)*ssigma15((int)ind1(d1,0), (int)ind1(d1,0));
       H(bb+n+d1, n+od) = H(bb+n+od, n+d1);
       
       //d od/d d2
-      H(bb+n+od, n+d2) = ssigma(ind1(d1,0), ind1(d1,0)) *(-0.5)*ssigma15(ind1(d2,0), ind1(d2,0));
+      H(bb+n+od, n+d2) = ssigma((int)ind1(d1,0), (int)ind1(d1,0)) *(-0.5)*ssigma15((int)ind1(d2,0), (int)ind1(d2,0));
       H(bb+n+d2, n+od) = H(bb+n+od, n+d2);
       
       
       //d d2/d d1
       
-      H(bb+n+d1, n+d2) = sigma(ind1(od,0), ind1(od,1))*(-0.5)*ssigma15(ind1(d2,0), ind1(d2,0))*(-0.5)*ssigma15(ind1(d1,0), ind1(d1,0));
+      H(bb+n+d1, n+d2) = sigma((int)ind1(od,0), (int)ind1(od,1))*(-0.5)*ssigma15((int)ind1(d2,0), (int)ind1(d2,0))*(-0.5)*ssigma15((int)ind1(d1,0), (int)ind1(d1,0));
       H(bb+n+d2, n+d1) = H(bb+n+d1, n+d2);
       
       
       //d d1/d d1
-      H(bb+n+d1, n+d1) = sigma(ind1(od,0), ind1(od,1))*ssigma(ind1(d2,0), ind1(d2,0))*(0.75)*ssigma25(ind1(d1,0), ind1(d1,0));
+      H(bb+n+d1, n+d1) = sigma((int)ind1(od,0), (int)ind1(od,1))*ssigma((int)ind1(d2,0), (int)ind1(d2,0))*(0.75)*ssigma25((int)ind1(d1,0), (int)ind1(d1,0));
       
       //d d2/d d2
-      H(bb+n+d2, n+d2) = sigma(ind1(od,0), ind1(od,1))*ssigma(ind1(d1,0), ind1(d1,0))*(0.75)*ssigma25(ind1(d2,0), ind1(d2,0));
+      H(bb+n+d2, n+d2) = sigma((int)ind1(od,0), (int)ind1(od,1))*ssigma((int)ind1(d1,0), (int)ind1(d1,0))*(0.75)*ssigma25((int)ind1(d2,0), (int)ind1(d2,0));
       
       
       
@@ -348,45 +347,45 @@ Eigen::MatrixXd H_theta(Eigen::MatrixXd X, Eigen::VectorXd b, Eigen::MatrixXd si
 //'
 //[[Rcpp::export]]
 Eigen::MatrixXd J_chol(Eigen::VectorXd x){
-  
-  //function that only takes a vector of Cholesky factors (lower triag - column major!) 
-  //and returns the dvech(LL')/dvech(L) Jacobian and the correspoding Hessian
-  
-  
-  int p = x.rows();
-  int m =  -0.5 + sqrt(0.25 + 2*p); //compute the dimension of the matrix from the length of the vector
-  
-  Eigen::MatrixXd C(m,m);
-  C.setZero();
-  
-  int ii = 0;
-  int jj = 0;
-  
-  for(int i = 0; i < p; ++i){ 
-    C(ii,jj) = x[i];
-    ii++;
-    if(ii == m){
-      ii = jj +1;
-      jj = ii;
-    }
-  }
-  
-  Eigen::MatrixXd L = elimmat(m);
-  Eigen::MatrixXd K = commmat(m,m);
-  Eigen::MatrixXd D = duplmat(m);
-  
-  Eigen::MatrixXd Lt = L.transpose();
-  
-  Eigen::MatrixXd I(m,m);
-  Eigen::MatrixXd II(m*m,m*m);
-  I.setIdentity();
-  II.setIdentity();
-  
-  Eigen::MatrixXd  J = L*(II + K)*kroneckerProduct(C,I)*Lt; //colum-major dvech(LL')/dvech(L) Jacobian
-  
-  
-  return J;
-}
+   
+   //function that only takes a vector of Cholesky factors (lower triag - column major!) 
+   //and returns the dvech(LL')/dvech(L) Jacobian and the correspoding Hessian
+   
+   
+   int p = x.rows();
+   int m =  -0.5 + sqrt(0.25 + 2*p); //compute the dimension of the matrix from the length of the vector
+   
+   Eigen::MatrixXd C(m,m);
+   C.setZero();
+   
+   int ii = 0;
+   int jj = 0;
+   
+   for(int i = 0; i < p; ++i){ 
+     C(ii,jj) = x[i];
+     ii++;
+     if(ii == m){
+       ii = jj +1;
+       jj = ii;
+     }
+   }
+   
+   Eigen::MatrixXd L = elimmat(m);
+   Eigen::MatrixXd K = commmat(m,m);
+   Eigen::MatrixXd D = duplmat(m);
+   
+   Eigen::MatrixXd Lt = L.transpose();
+   
+   Eigen::MatrixXd I(m,m);
+   Eigen::MatrixXd II(m*m,m*m);
+   I.setIdentity();
+   II.setIdentity();
+   
+   Eigen::MatrixXd  J = L*(II + K)*kroneckerProduct(C,I)*Lt; //colum-major dvech(LL')/dvech(L) Jacobian
+   
+   
+   return J;
+ }
 
 
 
@@ -929,7 +928,7 @@ Eigen::MatrixXd J_bvOv(Eigen::VectorXd tho, Eigen::VectorXd thl, int M, Eigen::M
 //' vector of systematic utilities
 //' @param y
 //' vector of choices
-//' @param Lambda 
+//' @param Lambda  
 //' correlation matrix
 //' @param alt
 //' integer; number of alternatives
@@ -942,100 +941,100 @@ Eigen::MatrixXd J_bvOv(Eigen::VectorXd tho, Eigen::VectorXd thl, int M, Eigen::M
 //[[Rcpp::export]]
 double prob_ordered_2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd Lambda, int alt, Eigen::VectorXd dtauk)
 {
-  double pr = 0;
-  
-  // tauk's. 
-  Eigen::VectorXd tauk(alt-1),edtauk(alt-1);
-  tauk.setZero();
-  edtauk.setZero();
-  edtauk(0)=1.0; 
-  
-  tauk(0) = dtauk(0);
-  for (int j=1;j<alt-1;j++){
-    edtauk(j) = std::exp(dtauk(j));
-    tauk(j)=tauk(j-1)+edtauk(j);
-  }
-  
-  // normalize variance matrix 
-  Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
-  Eigen::MatrixXd lambda_t = lambda.transpose();
-  
-  //............................................................//
-  // Normalize upper limits and covariance matrix (to correlation matrix)
-  //............................................................//
-  
-  Eigen::VectorXd x_norm = xb.array()/lambda.array();
-  Eigen::MatrixXd lambda_li_lj = lambda*lambda_t;
-  Eigen::MatrixXd Lambda_cor = (Lambda.array()/lambda_li_lj.array()).matrix();
-  
-
-  double y1 = y(0);
-  double y2 = y(1);
-  
-  if (y1<1){ y1=1;}
-  if (y1>alt){ y1=alt;}
-  if (y2<1){ y2=1;}
-  if (y2>alt){ y2=alt;}
-  
-  // upper and lower bounds 
-  double lower_bound1,lower_bound2;
-  lower_bound1 = tauk(0)-10.0;
-  lower_bound2 = tauk(0)-10.0;
-  
-  double upper_bound1, upper_bound2;
-  upper_bound1= tauk(alt-2)+10.0;
-  upper_bound2= tauk(alt-2)+10.0;
-  
-  // first values 
-  if (y1==1){
-    upper_bound1 =tauk(0);
-  }
-  if (y1==alt){
-    lower_bound1 = tauk(alt-2);
-  }
-  
-  if (y1>1){
-    if(y1<alt){
-      lower_bound1 = tauk(y1-2);
-      upper_bound1 = tauk(y1-1);
-    }
-  }
-  // second value
-  if (y2==1){
-    upper_bound2 =tauk(0);
-  }
-  if (y2==alt){
-    lower_bound2 = tauk(alt-2);
-  }
-  
-  if (y2>1){
-    if(y2<alt){
-      lower_bound2 = tauk(y2-2);
-      upper_bound2 = tauk(y2-1);
-    }
-  }
-  
-  // normalized bounds.
-  double ub1 = upper_bound1/lambda(0,0)-x_norm(0);
-  double lb1 = lower_bound1/lambda(0,0)-x_norm(0);
-  double ub2 = upper_bound2/lambda(1,0)-x_norm(1);
-  double lb2 = lower_bound2/lambda(1,0)-x_norm(1);
-  
-  // probabilities 
-  double rho = Lambda_cor(0,1);
-  
-  double pru1u2 = biv_normal_cdf(ub1,ub2,rho);
-  double pru1l2 = biv_normal_cdf(ub1,lb2,rho);
-  double prl1u2 = biv_normal_cdf(lb1,ub2,rho);
-  double prl1l2 = biv_normal_cdf(lb1,lb2,rho);
-  
-  pr = pru1u2 - pru1l2 - prl1u2 + prl1l2;
-  if (pr < 0.0000000001){ pr = 0.0000000001; } // regularize, if percentage is too small. 
-  double lpr = log(pr);
-  
-  // return value.
-  return lpr;
-}
+   double pr = 0;
+   
+   // tauk's. 
+   Eigen::VectorXd tauk(alt-1),edtauk(alt-1);
+   tauk.setZero();
+   edtauk.setZero();
+   edtauk(0)=1.0; 
+   
+   tauk(0) = dtauk(0);
+   for (int j=1;j<alt-1;j++){
+     edtauk(j) = std::exp(dtauk(j));
+     tauk(j)=tauk(j-1)+edtauk(j);
+   }
+   
+   // normalize variance matrix 
+   Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
+   Eigen::MatrixXd lambda_t = lambda.transpose();
+   
+   //............................................................//
+   // Normalize upper limits and covariance matrix (to correlation matrix)
+   //............................................................//
+   
+   Eigen::VectorXd x_norm = xb.array()/lambda.array();
+   Eigen::MatrixXd lambda_li_lj = lambda*lambda_t;
+   Eigen::MatrixXd Lambda_cor = (Lambda.array()/lambda_li_lj.array()).matrix();
+   
+   
+   double y1 = y(0);
+   double y2 = y(1);
+   
+   if (y1<1){ y1=1;}
+   if (y1>alt){ y1=alt;}
+   if (y2<1){ y2=1;}
+   if (y2>alt){ y2=alt;}
+   
+   // upper and lower bounds 
+   double lower_bound1,lower_bound2;
+   lower_bound1 = tauk(0)-10.0;
+   lower_bound2 = tauk(0)-10.0;
+   
+   double upper_bound1, upper_bound2;
+   upper_bound1= tauk(alt-2)+10.0;
+   upper_bound2= tauk(alt-2)+10.0;
+   
+   // first values 
+   if (y1==1){
+     upper_bound1 =tauk(0);
+   }
+   if (y1==alt){
+     lower_bound1 = tauk(alt-2);
+   }
+   
+   if (y1>1){
+     if(y1<alt){
+       lower_bound1 = tauk((int)y1-2);
+       upper_bound1 = tauk((int)y1-1);
+     }
+   }
+   // second value
+   if (y2==1){
+     upper_bound2 =tauk[0];
+   }
+   if (y2==alt){
+     lower_bound2 = tauk(alt-2);
+   }
+   
+   if (y2>1){
+     if(y2<alt){
+       lower_bound2 = tauk((int)y2-2);
+       upper_bound2 = tauk((int)y2-1);
+     }
+   }
+   
+   // normalized bounds.
+   double ub1 = upper_bound1/lambda(0,0)-x_norm(0);
+   double lb1 = lower_bound1/lambda(0,0)-x_norm(0);
+   double ub2 = upper_bound2/lambda(1,0)-x_norm(1);
+   double lb2 = lower_bound2/lambda(1,0)-x_norm(1);
+   
+   // probabilities 
+   double rho = Lambda_cor(0,1);
+   
+   double pru1u2 = biv_normal_cdf(ub1,ub2,rho);
+   double pru1l2 = biv_normal_cdf(ub1,lb2,rho);
+   double prl1u2 = biv_normal_cdf(lb1,ub2,rho);
+   double prl1l2 = biv_normal_cdf(lb1,lb2,rho);
+   
+   pr = pru1u2 - pru1l2 - prl1u2 + prl1l2;
+   if (pr < 0.0000000001){ pr = 0.0000000001; } // regularize, if percentage is too small. 
+   double lpr = log(pr);
+   
+   // return value.
+   return lpr;
+ }
 
 Eigen::VectorXd  grad_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd Lambda, int alt, Eigen::VectorXd dtauk)
 {
@@ -1056,12 +1055,12 @@ Eigen::VectorXd  grad_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
     tauk(j)=tauk(j-1)+edtauk(j);
   }
   
-
+  
   // normalize variance matrix 
   Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
   Eigen::MatrixXd lambda_t = lambda.transpose();
   
- 
+  
   //............................................................//
   // Normalize upper limits and covariance matrix (to correlation matrix)
   //............................................................//
@@ -1097,8 +1096,8 @@ Eigen::VectorXd  grad_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
   
   if (y1>1){
     if(y1<alt){
-      lower_bound1 = tauk(y1-2);
-      upper_bound1 = tauk(y1-1);
+      lower_bound1 = tauk((int)y1-2);
+      upper_bound1 = tauk((int)y1-1);
     }
   }
   // second value
@@ -1111,8 +1110,8 @@ Eigen::VectorXd  grad_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
   
   if (y2>1){
     if(y2<alt){
-      lower_bound2 = tauk(y2-2);
-      upper_bound2 = tauk(y2-1);
+      lower_bound2 = tauk((int)y2-2);
+      upper_bound2 = tauk((int)y2-1);
     }
   }
   
@@ -1151,10 +1150,10 @@ Eigen::VectorXd  grad_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
   iota(0)=1.0; 
   
   if (y1<alt){
-    grad.segment(5,y1) +=  grad_u1u2(0)*iota.head(y1)/lambda(0,0);   
+    grad.segment(5,(int)y1) +=  grad_u1u2(0)*iota.head((int)y1)/lambda(0,0);   
   }
   if (y2<alt){
-    grad.segment(5,y2) +=  grad_u1u2(1)*iota.head(y2)/lambda(1,0);   
+    grad.segment(5,(int)y2) +=  grad_u1u2(1)*iota.head((int)y2)/lambda(1,0);   
   }
   
   // derivative of pru1l2
@@ -1185,10 +1184,10 @@ Eigen::VectorXd  grad_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
   grad(4) -= grad_l1u2(2)/(lambda(0,0)*lambda(1,0));
   
   if (y1>1){
-    grad.segment(5,y1-1) -=  grad_l1u2(0)*iota.head(y1-1)/lambda(0,0);   
+    grad.segment(5,(int)y1-1) -=  grad_l1u2(0)*iota.head((int)y1-1)/lambda(0,0);   
   }
   if (y2<alt){
-    grad.segment(5,y2) -=  grad_l1u2(1)*iota.head(y2)/lambda(1,0);   
+    grad.segment(5,(int)y2) -=  grad_l1u2(1)*iota.head((int)y2)/lambda(1,0);   
   }
   
   // derivative of prl1l2
@@ -1235,12 +1234,12 @@ Eigen::MatrixXd  hess_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
     edtauk(j) = std::exp(dtauk(j));
     tauk(j)=tauk(j-1)+edtauk(j);
   }
-
+  
   // normalize variance matrix 
   Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
   Eigen::MatrixXd lambda_t = lambda.transpose();
   
-
+  
   //............................................................//
   // Normalize upper limits and covariance matrix (to correlation matrix)
   //............................................................//
@@ -1249,8 +1248,8 @@ Eigen::MatrixXd  hess_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
   Eigen::MatrixXd lambda_li_lj = lambda*lambda_t;
   Eigen::MatrixXd Lambda_cor = (Lambda.array()/lambda_li_lj.array()).matrix();
   
-  double y1 = y(0);
-  double y2 = y(1);
+  int y1 = y(0);
+  int y2 = y(1);
   
   if (y1<1){ y1=1;}
   if (y1>alt){ y1=alt;}
@@ -1312,7 +1311,7 @@ Eigen::MatrixXd  hess_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
   pr = pru1u2 - pru1l2 - prl1u2 + prl1l2;
   
   if (pr < 0.0000000001){ pr = 0.0000000001; } // regularize, if percentage is too small. 
-
+  
   // derivative of pru1u2
   Eigen::VectorXd grad_u1u2(3);
   grad_u1u2 = grad_cdf(ub1,ub2,rho);
@@ -1468,7 +1467,7 @@ Eigen::MatrixXd  hess_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
   Eigen::MatrixXd Hess_u1l2(5,5);
   Hess_u1l2 = Hess_cdf(ub1,lb2,rho);
   
-
+  
   Hess += -Ju1l2.transpose() * Hess_u1l2 * Ju1l2;
   
   // deriv w.r.t. x(0). 
@@ -1549,7 +1548,7 @@ Eigen::MatrixXd  hess_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
   
   Eigen::MatrixXd Hess_l1l2(5,5);
   Hess_l1l2 = Hess_cdf(lb1,lb2,rho);
-
+  
   Hess += Jl1l2.transpose() * Hess_l1l2 * Jl1l2;
   
   // deriv w.r.t. x(0). 
@@ -1613,105 +1612,105 @@ Eigen::MatrixXd  hess_po2(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd
 //'
 //[[Rcpp::export]]
 double prob_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd Lambda, int alt, Eigen::VectorXd dtauk, int cml_pair_type){
-  double pr = 0;
-  
-  // tauk's. 
-  Eigen::VectorXd tauk(alt-1),edtauk(alt-1);
-  tauk.setZero();
-  edtauk.setZero();
-  edtauk(0)=1.0; 
-  
-  tauk(0) = dtauk(0);
-  for (int j=1;j<alt-1;j++){
-    edtauk(j) = std::exp(dtauk(j));
-    tauk(j)=tauk(j-1)+edtauk(j);
-  }
-  
-  // normalize variance matrix 
-  Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
-  Eigen::MatrixXd lambda_t = lambda.transpose();
-  
-  //............................................................//
-  // Normalize upper limits and covariance matrix (to correlation matrix)
-  //............................................................//
-  
-  Eigen::VectorXd x_norm = xb.array()/lambda.array();
-  Eigen::MatrixXd lambda_li_lj = lambda*lambda_t;
-  Eigen::MatrixXd Lambda_cor = (Lambda.array()/lambda_li_lj.array()).matrix();
-  
-  int Tp_n= xb.size();
-  int lth_pairs_n = (Tp_n-1)*Tp_n/2;
-  
-  // Define a matrix that allows to specify the pairs (possible extension to higher order CMLs)
-  Eigen::MatrixXd pairs_n;
-  int pairs_check = 0;
-  
-  // if there were no valid pairs for the decision maker, construct them
-  if(pairs_check==0){
-    Eigen::MatrixXd pairs_temp(lth_pairs_n,3);
-    pairs_temp.setOnes();
-    // if the pairs are not predefined, build them
-    int i_pair = 0;
-    for(int i_pair_0 = 0; i_pair_0 < (Tp_n-1); i_pair_0 ++){
-      for(int i_pair_1 = (i_pair_0+1);i_pair_1 < (Tp_n); i_pair_1 ++){
-        // first choice occasion of the pair
-        pairs_temp(i_pair,0) = i_pair_0;
-        // second choice occasion of the pair
-        pairs_temp(i_pair,1) = i_pair_1;
-        
-        // define the according weights to exclude undesired pairs
-        if(cml_pair_type == 1){
-          // for adjacent pairs looped:
-          if( !(((i_pair_0+1) == i_pair_1) || ((i_pair_0 == 0) && (i_pair_1 == (Tp_n-1)))) ){
-            pairs_temp(i_pair,2) = 0;
-          }
-        }
-        if(cml_pair_type == 2){
-          // for adjacent pairs chained
-          if( !((i_pair_0+1) == i_pair_1) ){
-            pairs_temp(i_pair,2) = 0;
-          }
-        }
-        i_pair++;
-      }
-    }
-    pairs_n = pairs_temp;
-    pairs_check = 1;
-  }
-  
-  for(int i_pair = 0; i_pair < lth_pairs_n; i_pair ++){
-    
-    // only calculate the pair if the weight is !=0
-    if(pairs_n(i_pair,2)!=0){
-      // get the two coordinates 
-      int i_1= pairs_n(i_pair,0);
-      int i_2 = pairs_n(i_pair,1);
-      
-      Eigen::VectorXd yp(2);
-      yp(0)= y(i_1);
-      yp(1) = y(i_2);
-      
-      Eigen::VectorXd xbp(2);
-      xbp(0)= xb(i_1);
-      xbp(1)= xb(i_2);
-      
-      Eigen::MatrixXd Lambdap(2,2);
-      Lambdap.setZero();
-      Lambdap(0,0)= Lambda(i_1,i_1);
-      Lambdap(0,1)= Lambda(i_1,i_2);
-      Lambdap(1,0)= Lambda(i_2,i_1);
-      Lambdap(1,1)= Lambda(i_2,i_2);
-      
-      double prp = prob_ordered_2(xbp,yp,Lambdap,alt,dtauk);
-
-      pr += prp;
-      
-    }
-  }
-  
-  // return value. 
-  return pr;
-}
+   double pr = 0;
+   
+   // tauk's. 
+   Eigen::VectorXd tauk(alt-1),edtauk(alt-1);
+   tauk.setZero();
+   edtauk.setZero();
+   edtauk(0)=1.0; 
+   
+   tauk(0) = dtauk(0);
+   for (int j=1;j<alt-1;j++){
+     edtauk(j) = std::exp(dtauk(j));
+     tauk(j)=tauk(j-1)+edtauk(j);
+   }
+   
+   // normalize variance matrix 
+   Eigen::MatrixXd lambda = Lambda.diagonal().array().sqrt();
+   Eigen::MatrixXd lambda_t = lambda.transpose();
+   
+   //............................................................//
+   // Normalize upper limits and covariance matrix (to correlation matrix)
+   //............................................................//
+   
+   Eigen::VectorXd x_norm = xb.array()/lambda.array();
+   Eigen::MatrixXd lambda_li_lj = lambda*lambda_t;
+   Eigen::MatrixXd Lambda_cor = (Lambda.array()/lambda_li_lj.array()).matrix();
+   
+   int Tp_n= xb.size();
+   int lth_pairs_n = (Tp_n-1)*Tp_n/2;
+   
+   // Define a matrix that allows to specify the pairs (possible extension to higher order CMLs)
+   Eigen::MatrixXd pairs_n;
+   int pairs_check = 0;
+   
+   // if there were no valid pairs for the decision maker, construct them
+   if(pairs_check==0){
+     Eigen::MatrixXd pairs_temp(lth_pairs_n,3);
+     pairs_temp.setOnes();
+     // if the pairs are not predefined, build them
+     int i_pair = 0;
+     for(int i_pair_0 = 0; i_pair_0 < (Tp_n-1); i_pair_0 ++){
+       for(int i_pair_1 = (i_pair_0+1);i_pair_1 < (Tp_n); i_pair_1 ++){
+         // first choice occasion of the pair
+         pairs_temp(i_pair,0) = i_pair_0;
+         // second choice occasion of the pair
+         pairs_temp(i_pair,1) = i_pair_1;
+         
+         // define the according weights to exclude undesired pairs
+         if(cml_pair_type == 1){
+           // for adjacent pairs looped:
+           if( !(((i_pair_0+1) == i_pair_1) || ((i_pair_0 == 0) && (i_pair_1 == (Tp_n-1)))) ){
+             pairs_temp(i_pair,2) = 0;
+           }
+         }
+         if(cml_pair_type == 2){
+           // for adjacent pairs chained
+           if( !((i_pair_0+1) == i_pair_1) ){
+             pairs_temp(i_pair,2) = 0;
+           }
+         }
+         i_pair++;
+       }
+     }
+     pairs_n = pairs_temp;
+     pairs_check = 1;
+   }
+   
+   for(int i_pair = 0; i_pair < lth_pairs_n; i_pair ++){
+     
+     // only calculate the pair if the weight is !=0
+     if(pairs_n(i_pair,2)!=0){
+       // get the two coordinates 
+       int i_1= pairs_n(i_pair,0);
+       int i_2 = pairs_n(i_pair,1);
+       
+       Eigen::VectorXd yp(2);
+       yp(0)= y(i_1);
+       yp(1) = y(i_2);
+       
+       Eigen::VectorXd xbp(2);
+       xbp(0)= xb(i_1);
+       xbp(1)= xb(i_2);
+       
+       Eigen::MatrixXd Lambdap(2,2);
+       Lambdap.setZero();
+       Lambdap(0,0)= Lambda(i_1,i_1);
+       Lambdap(0,1)= Lambda(i_1,i_2);
+       Lambdap(1,0)= Lambda(i_2,i_1);
+       Lambdap(1,1)= Lambda(i_2,i_2);
+       
+       double prp = prob_ordered_2(xbp,yp,Lambdap,alt,dtauk);
+       
+       pr += prp;
+       
+     }
+   }
+   
+   // return value. 
+   return pr;
+ }
 
 Eigen::VectorXd grad_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::MatrixXd Lambda, int alt, Eigen::VectorXd dtauk, int cml_pair_type){
   
@@ -1813,7 +1812,7 @@ Eigen::VectorXd grad_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::M
       Lambdap(1,1)= Lambda(i_2,i_2);
       
       double prp = prob_ordered_2(xbp,yp,Lambdap,alt,dtauk);
-
+      
       pr += prp;
       
       // gradient calculation 
@@ -2077,7 +2076,7 @@ Eigen::MatrixXd hess_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::M
       Lambdap(1,1)= Lambda(i_2,i_2);
       
       double prp = prob_ordered_2(xbp,yp,Lambdap,alt,dtauk);
- 
+      
       pr += prp;
       
       // gradient calculation 
@@ -2111,7 +2110,7 @@ Eigen::MatrixXd hess_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::M
       grad(Tp_n+ind_i1i2) +=gradp(4);
       grad.segment(np,alt-1) += gradp.segment(5,alt-1);
       
-
+      
       //////////////////
       // Hessian 
       //////////////////
@@ -2121,7 +2120,7 @@ Eigen::MatrixXd hess_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::M
       
       for (int ia=0;ia<ind.size();ia++){
         for (int ib=0;ib<ind.size();ib++){
-          Hess(ind(ia),ind(ib)) += Hessp(ia,ib);
+          Hess((int)ind[ia],(int)ind[ib]) += Hessp(ia,ib);
         }
       }     
       
@@ -2153,57 +2152,57 @@ Eigen::MatrixXd hess_ordered_CML(Eigen::VectorXd xb, Eigen::VectorXd y, Eigen::M
 //[[Rcpp::export]]
 double prob_ordered_1(double xb, int y1, double Lambda, int alt, Eigen::VectorXd dtauk)
 {
-  
-  // tauk's. 
-  Eigen::VectorXd tauk(alt-1),edtauk(alt-1);
-  tauk.setZero();
-  edtauk.setZero();
-  edtauk(0)=1.0; 
-  
-  tauk(0) = dtauk(0);
-  for (int j=1;j<alt-1;j++){
-    edtauk(j) = std::exp(dtauk(j));
-    tauk(j)=tauk(j-1)+edtauk(j);
-  }
-  
-  double lam = sqrt(Lambda);
-  
-  double x_norm = xb/lam;
-  
-  double lower_bound;
-  lower_bound = tauk(0)-10.0;
-  
-  double upper_bound;
-  upper_bound= tauk(alt-2)+10.0;
-  
-  if (y1<1){ y1=1;}
-  if (y1>alt){ y1=alt;}
-  
-  if (y1==1){
-    upper_bound =tauk(0);
-  }
-  if (y1==alt){
-    lower_bound = tauk(alt-2);
-  }
-  
-  if (y1>1){
-    if(y1<alt){
-      lower_bound = tauk(y1-2);
-      upper_bound = tauk(y1-1);
-    }
-  }
-  
-  //
-  double ub = upper_bound/lam-x_norm;
-  double lb = lower_bound/lam-x_norm;
-  
-  double pu = std_normal_cdf(ub);
-  double pl = std_normal_cdf(lb);
-  
-  double pr = pu-pl;
-  double lpr = log(pr);
-  return lpr;
-}
+   
+   // tauk's. 
+   Eigen::VectorXd tauk(alt-1),edtauk(alt-1);
+   tauk.setZero();
+   edtauk.setZero();
+   edtauk(0)=1.0; 
+   
+   tauk(0) = dtauk(0);
+   for (int j=1;j<alt-1;j++){
+     edtauk(j) = std::exp(dtauk(j));
+     tauk(j)=tauk(j-1)+edtauk(j);
+   }
+   
+   double lam = sqrt(Lambda);
+   
+   double x_norm = xb/lam;
+   
+   double lower_bound;
+   lower_bound = tauk(0)-10.0;
+   
+   double upper_bound;
+   upper_bound= tauk(alt-2)+10.0;
+   
+   if (y1<1){ y1=1;}
+   if (y1>alt){ y1=alt;}
+   
+   if (y1==1){
+     upper_bound =tauk(0);
+   }
+   if (y1==alt){
+     lower_bound = tauk(alt-2);
+   }
+   
+   if (y1>1){
+     if(y1<alt){
+       lower_bound = tauk(y1-2);
+       upper_bound = tauk(y1-1);
+     }
+   }
+   
+   //
+   double ub = upper_bound/lam-x_norm;
+   double lb = lower_bound/lam-x_norm;
+   
+   double pu = std_normal_cdf(ub);
+   double pl = std_normal_cdf(lb);
+   
+   double pr = pu-pl;
+   double lpr = log(pr);
+   return lpr;
+ }
 
 
 
@@ -2260,7 +2259,7 @@ Eigen::VectorXd grad_po1(double xb, int y1, double Lambda, int alt, Eigen::Vecto
   double ub = upper_bound/lam-x_norm;
   double lb = lower_bound/lam-x_norm;
   
-
+  
   double pu = std_normal_cdf(ub);
   double pl = std_normal_cdf(lb);
   
@@ -2280,7 +2279,7 @@ Eigen::VectorXd grad_po1(double xb, int y1, double Lambda, int alt, Eigen::Vecto
   if (y1<alt){
     gradu.segment(2,y1) = iota.head(y1)/lam;
   }
-
+  
   gradu = gradu*gr_u;
   
   // at lower bound 
@@ -2293,7 +2292,7 @@ Eigen::VectorXd grad_po1(double xb, int y1, double Lambda, int alt, Eigen::Vecto
   }
   
   gradl = gradl*gr_l;
-
+  
   // put pieces together
   grad = gradu -gradl; 
   
@@ -2435,4 +2434,6 @@ Eigen::MatrixXd hess_po1(double xb, int y1, double Lambda, int alt, Eigen::Vecto
   
   return Hess;
 }
+
+
 

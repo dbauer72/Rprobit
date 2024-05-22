@@ -19,7 +19,9 @@ using Eigen::Map;                                               // 'maps' rather
 
 #include "toms462.h"                                          // allows bivariate normal cdf calculations
 #include "TVBS_vdb.h"
-
+#include "TVBS_vdb_helper.h"
+#include "TVBS_vdb_helper_2.h"
+#include "TVBS_vdb_Hessian.h"
 
 #include <iostream>
 #include <vector>
@@ -168,7 +170,7 @@ double TVBS_std_normal_cdf_inv_1(double y)
       x = -x;
     }
   }
-       
+  
   return x;
 }
 
@@ -239,9 +241,9 @@ Eigen::MatrixXd TVBS_L_N_shift_cpp(int h, int K, int N, int s = 0)
 {
   Eigen::MatrixXd mat_n_seq(1,N);
   mat_n_seq = Eigen::VectorXd::LinSpaced(N,0,N-1);
-
+  
   Eigen::VectorXd test_1 = TVBS_v_Korobov_cpp(h,K,N).cast <double> ();
-
+  
   Eigen::MatrixXd test_2 = test_1*mat_n_seq.transpose()/N;
   
   std::mt19937_64 rng;
@@ -603,10 +605,10 @@ double TVBS_pmvnorm_old_cpp(Eigen::VectorXd upper, Eigen::VectorXd mu, Eigen::Ma
           Eigen::VectorXd Lattice_N_shift_i_2 = (1.0-abs(2.0*Lattice_N_shift.col(i).array()-1.0));
           Lattice_evaluations(i) = (TVBS_std_normal_cdf_inv(Lattice_N_shift_i , b, L) + TVBS_std_normal_cdf_inv(Lattice_N_shift_i_2, b, L))/sqrt(2.0*N);
         }
-
+        
         I_Ni(j) = Lattice_evaluations.sum()/sqrt(2.0*N);
       }
-
+      
     }
     
     output = I_Ni.sum()/(M*1.0);
@@ -826,7 +828,7 @@ struct TVBS_Matrix_two TVBSo_grad_cdf_tvn_cpp(Eigen::VectorXd x_norm, Eigen::Mat
     double d_a = TVBS_std_normal_pdf_cpp(h2)*TVBS_std_normal_cdf_cpp((h3-r23*h2)/sqrt(1.0-pow(r23,2)));
     double d_b = TVBS_std_normal_pdf_cpp(h3)*TVBS_std_normal_cdf_cpp((h2-r23*h3)/sqrt(1.0-pow(r23,2)));
     double d_corr = (exp(-0.5*(pow(h2,2) + pow(h3,2) - 2*r23 * h2 * h3   ) / (1.0-r23*r23) )) / sqrt(1.0-r23 * r23)/(2*pi_global);
-        
+    
     d_tvn << (TVBS_std_normal_pdf_cpp(h1)*cdfbvn_h2_h3), cdfn_h1*d_a, (cdfn_h1*d_b), 0, 0, (cdfn_h1*d_corr);
     
     
@@ -1015,7 +1017,7 @@ struct TVBS_Matrix_three TVBSo_grad_non_cdf_tvn_by_cdf_bvn_cpp(Eigen::VectorXd m
   Eigen::VectorXd Sigma_diag_sqrt = cov.diagonal().array().sqrt();
   Eigen::VectorXd x_norm = (x.array()-mu.array())/Sigma_diag_sqrt.array();
   // cap the x values over 6 and under -6
-
+  
   x_norm = x_norm.array().min(6);
   x_norm = x_norm.array().max(-6);
   
@@ -1159,7 +1161,7 @@ struct TVBS_Matrix_two TVBSo_grad_cdf_qvn_by_cdf_bvn_cpp(Eigen::VectorXd w, Eige
 {
   Eigen::VectorXd mu_temp_4(4);
   mu_temp_4.setZero();
-
+  
   double quad_var_cdf = TVBS_pmvnorm_old_cpp(w.head(4), mu_temp_4, cor.block(0,0,4,4));
   double bi_var_cdf = TVBS_pmvnorm_old_cpp(w.head(2), mu_temp_4.head(2), cor.block(0,0,2,2));
   
@@ -1325,14 +1327,14 @@ struct TVBS_Vector_three TVBSo_pdf_mvna_tvbs_cpp(Eigen::VectorXd x_norm, Eigen::
     g_rho_rho = output_2.mat2;
     p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
     
-  // if the output should be for log
-  if(log_out==1)
-  {
-    g_c /= p_out(0);
-    g_rho_rho /= p_out(0);
-    double p = log(p_out(0));
-    p_out(0) = p;
-  }
+    // if the output should be for log
+    if(log_out==1)
+    {
+      g_c /= p_out(0);
+      g_rho_rho /= p_out(0);
+      double p = log(p_out(0));
+      p_out(0) = p;
+    }
   }
   else 
   {
@@ -1459,7 +1461,7 @@ struct TVBS_Vector_three TVBSo_pdf_mvna_tvbs_cpp(Eigen::VectorXd x_norm, Eigen::
         g_rho_rho_add.block(0,4,g_rho_rho_add.rows(),3) = g_cu_mul_mu_sig.block(0,(2*m-4*k1+1)-1,g_cu_mul_mu_sig.rows(),3);
         g_rho_rho_add.block(0,4+3,g_rho_rho_add.rows(),2) = g_cu_mul_mu_sig.block(0,(3*m-6*k1)-1,g_cu_mul_mu_sig.rows(),2);
         g_rho_rho_add.block(0,4+3+2,g_rho_rho_add.rows(),1) = g_cu_mul_mu_sig.block(0,(4*m-8*k1-2)-1,g_cu_mul_mu_sig.rows(),1);
-
+        
         g_rho_rho += 1.0/p(k1)*( g_cu_mul_mu_sig.block(0,0,g_cu_mul_mu_sig.rows(),4)*g_from_p_mu +  g_rho_rho_add*g_from_p_cov);
         
         
@@ -1587,10 +1589,10 @@ struct TVBS_Vector_three TVBSo_pdf_mvna_tvbs_cpp(Eigen::VectorXd x_norm, Eigen::
   
   for(int i_row=0; i_row<m; i_row++)
   {
-    g_c_new(temp1(i_row)) = g_c(i_row);
+    g_c_new[temp1[i_row]] = g_c(i_row);
     for(int i_col=0; i_col<m; i_col++)
     {
-      g_rho_rho_mat(temp1(i_row),temp1(i_col)) = g_rho_rho_mat_new(i_row,i_col);
+      g_rho_rho_mat((int)temp1[i_row],(int)temp1[i_col]) = g_rho_rho_mat_new(i_row,i_col);
     }
   }
   g_c = g_c_new;
@@ -1667,7 +1669,7 @@ struct TVBS_Vector_four TVBSo_pdf_mvn_analytic_cpp(Eigen::VectorXd mu, Eigen::Ma
   g_mu = -1.0*g_w.array()/Sigma_diag_sqrt.array();
   g_x = -1.0*g_mu;
   
-
+  
   struct TVBS_Vector_four output_final = {p, g_mu, g_cov, g_x};
   return output_final;
 }
@@ -1697,376 +1699,376 @@ struct TVBS_Vector_four TVBSo_pdf_mvn_analytic_cpp(Eigen::VectorXd mu, Eigen::Ma
 //[[Rcpp::export]]
 Eigen::VectorXd TVBS(Eigen::VectorXd x_norm, Eigen::MatrixXd Cor_mat, int log_out = 0)
 {
-  // determine dimension of the problem
-  int m = x_norm.size();
-  
-  // calculate number of iterations
-  int k_tilde = std::max((m-1)/2,1);
-  
-  
-  // initialize variables for the output
-  Eigen::VectorXd p(k_tilde), p_out(1), g_c(m), g_rho_rho((m*(m-1))/2);
-  p.setZero();
-  p_out.setZero();
-  g_c.setZero();
-  g_rho_rho.setZero();
-  p_out.setZero();
-  
-  // initialize mu_zero variable
-  Eigen::VectorXd mu_zero(m);
-  mu_zero.setZero();
-  
-  
-  
-  
-  // // // // // // // // // // //
-  // reorder the dimensions     //
-  // // // // // // // // // // //
-  
-  struct TVBS_Vec_Mat_Vec output_reorder = TVBS_reorder_sig_cpp(x_norm, Cor_mat);
-  
-  Eigen::MatrixXd Cor_mat_temp = output_reorder.mat1;        // we'll work with this one
-  Eigen::MatrixXd Cor_mat_ordered = Cor_mat_temp;            // we'll keep this as the original one
-  
-  Eigen::VectorXd x_temp = output_reorder.vec1;
-  
-  Eigen::VectorXd temp1 = output_reorder.vec2;
-  
-  Eigen::VectorXd mu_temp(m);
-  mu_temp.setZero();
-  
-  // // // // // // // // // // //
-  // end of reordering          //
-  // // // // // // // // // // //
-
-  
-  
-  // calculate initial LDLT decomposition
-  struct TVBS_Matrix_two output_2 = TVBS_LDLT_decomp_cpp(Cor_mat_temp);
-  Eigen::MatrixXd L = output_2.mat1;
-  Eigen::MatrixXd D = output_2.mat2;
-  
-  
-  // deal with low dimensional cases directly
-  if(m==2)
-  {
-    struct TVBS_double_three output_3 = TVBS_grad_cdf_bvn_cpp(x_temp, Cor_mat_temp.block(0,0,2,2));
-    g_c << output_3.d1, output_3.d2;
-    g_rho_rho(0) = output_3.d3;
-    p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(2), Cor_mat_temp.block(0,0,2,2));
-    
-    // if the output should be for log
-    if(log_out==1)
-    {
-      g_c /= p_out(0);
-      g_rho_rho /= p_out(0);
-      double p = log(p_out(0));
-      p_out(0) = p;
-    }
-  }
-  else if(m==3)
-  {
-    struct TVBS_Matrix_two output_2 = TVBSo_grad_cdf_tvn_cpp(x_temp, Cor_mat_temp.block(0,0,3,3));
-    g_c = output_2.mat1;
-    g_rho_rho = output_2.mat2;
-    p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(3), Cor_mat_temp.block(0,0,3,3));
-    
-    // if the output should be for log
-    if(log_out==1)
-    {
-      g_c /= p_out(0);
-      g_rho_rho /= p_out(0);
-      double p = log(p_out(0));
-      p_out(0) = p;
-    }
-  }
-  else if(m==4)
-  {
-    struct TVBS_Matrix_two output_2 = TVBSo_grad_cdf_qvn_cpp(x_temp, Cor_mat_temp.block(0,0,4,4));
-    g_c = output_2.mat1;
-    g_rho_rho = output_2.mat2;
-    p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
-    
-    // if the output should be for log
-    if(log_out==1)
-    {
-      g_c /= p_out(0);
-      g_rho_rho /= p_out(0);
-      double p = log(p_out(0));
-      p_out(0) = p;
-    }
-  }
-  else 
-  {
-
-    // initiate some variables
-    struct TVBS_Matrix_two output_2;
-    struct TVBS_Matrix_three output_3;
-    struct TVBS_Matrix_four output_4;
-    Eigen::VectorXd mu_tilde;
-    Eigen::MatrixXd omega, g_y, g_mu_mean, g_x_mean, g_c_mean, g_mu_cov, g_x_cov, g_c_cov, g_cu_mul_mu_sig, g_cu_mu_lc, g_cu_mul_mu_sig_rhs, g_cu_mu_lc_rhs, g_rho_rho_add, g_c_add;
-    double p_k1_nomi, p_k1_denomi;
-    Eigen::VectorXd g_from_p_mu, g_from_p_cov, g_from_p_c;
-    
-    
-    // calculate P1 using the first four variables
-    p(0) = TVBS_pmvnorm_old_cpp(x_temp.head(4), mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
-    
-    
-    Eigen::VectorXd g_cu_mul_from_pc(m);
-    g_cu_mul_from_pc.setZero();
-    
-    
-    // start here from k1=1 to make indexing easier
-    for(int k1=1; k1<k_tilde; k1++)
-    {
-      // claculate the truncated mean and variance
-      output_2 = TVBS_truncate_bi_normal_cpp(mu_temp.head(2), D.block(0,0,2,2), x_temp.segment((2*k1-1)-1,2),tol);
-      mu_tilde = output_2.mat1;
-      omega = output_2.mat2;
-      
-      
-      // set global variables according to the case (if they have already been truncated or not)
-      if(k1==1)
-      {
-        condcovsigtrunc_global = 0;
-        condcovmeantrunc_global = 0;
-      }
-      else
-      {
-        condcovsigtrunc_global = 1;
-        condcovmeantrunc_global = 1;
-      }
-      
-      
-      output_4 = TVBS_g_cond_mean_trunc_cpp(Eigen::MatrixXd::Identity(m-2*k1, m-2*k1), mu_temp, Cor_mat_temp, x_temp.segment((2*k1-1)-1,2));
-      g_y = output_4.mat1;
-      g_mu_mean = output_4.mat2;
-      g_x_mean = output_4.mat3;
-      g_c_mean = output_4.mat4;
-      
-      
-      output_3 = TVBS_g_cond_cov_trunc_cpp(mu_temp, Cor_mat_temp, x_temp.segment((2*k1-1)-1,2));
-      g_mu_cov = output_3.mat1;
-      g_x_cov = output_3.mat2;
-      g_c_cov = output_3.mat3;
-      
-      
-      // update g_cu_mul_mu_sig and g_cu_mu_lc
-      if(k1==1)
-      {
-        g_cu_mul_mu_sig.resize(g_x_mean.rows(), g_x_mean.cols()+g_x_cov.cols());
-        g_cu_mul_mu_sig.block(0,0,g_x_mean.rows(),g_x_mean.cols()) = g_x_mean;
-        g_cu_mul_mu_sig.block(0,g_x_mean.cols(),g_x_cov.rows(),g_x_cov.cols()) = g_x_cov;
-        
-        g_cu_mu_lc.resize(g_c_mean.rows()+m-2,g_c_mean.cols()+g_c_cov.cols());
-        g_cu_mu_lc.setZero();
-        g_cu_mu_lc.block(0,0,g_c_mean.rows(),g_c_mean.cols()) = g_c_mean;
-        g_cu_mu_lc.block(0,g_c_mean.cols(),g_c_cov.rows(),g_c_cov.cols()) = g_c_cov;
-        
-      }
-      else if(k1>1)
-      {
-        g_cu_mul_mu_sig_rhs.resize(g_mu_mean.rows()+g_x_mean.rows(), g_mu_mean.cols()+g_mu_cov.cols());
-        g_cu_mul_mu_sig_rhs.block(0,0,g_mu_mean.rows(),g_mu_mean.cols()) = g_mu_mean;
-        g_cu_mul_mu_sig_rhs.block(0,g_mu_mean.cols(),g_mu_cov.rows(),g_mu_cov.cols()) = g_mu_cov;
-        g_cu_mul_mu_sig_rhs.block(g_mu_mean.rows(),0,g_x_mean.rows(),g_x_mean.cols()) = g_x_mean;
-        g_cu_mul_mu_sig_rhs.block(g_mu_mean.rows(),g_mu_mean.cols(),g_x_cov.rows(),g_x_cov.cols()) = g_x_cov;
-        g_cu_mul_mu_sig = g_cu_mul_mu_sig*g_cu_mul_mu_sig_rhs;
-        
-        // update g_cu_mu_lc
-        g_cu_mu_lc_rhs.resize(g_mu_mean.rows()+g_x_mean.rows(),g_mu_mean.cols()+g_mu_cov.cols());
-        g_cu_mu_lc_rhs.block(0,0,g_mu_mean.rows(),g_mu_mean.cols()) = g_mu_mean;
-        g_cu_mu_lc_rhs.block(0,g_mu_mean.cols(),g_mu_cov.rows(),g_mu_cov.cols()) = g_mu_cov;
-        g_cu_mu_lc_rhs.block(g_mu_mean.rows(),0,g_x_mean.rows(),g_x_mean.cols()) = g_x_mean;
-        g_cu_mu_lc_rhs.block(g_mu_mean.rows(),g_mu_mean.cols(),g_x_cov.rows(),g_x_cov.cols()) = g_x_cov;
-        g_cu_mu_lc = g_cu_mu_lc*g_cu_mu_lc_rhs;
-        
-        g_cu_mu_lc.block((2*(k1-1)+1)-1,0,2,g_c_mean.cols()) = g_c_mean;
-        g_cu_mu_lc.block((2*(k1-1)+1)-1,g_c_mean.cols(),2,g_c_cov.cols()) = g_c_cov;
-      }
-      
-      
-      // update pi_kp1
-      mu_temp = mu_temp.segment(2,m-2*k1) + L.block(2,0,m-2*k1,2)*(mu_tilde-mu_temp.head(2));
-      
-      
-      // update the covariance matrix LDLT decomposition
-      output_2 = TVBS_LDLT_update_cpp(L,D,omega,2);
-      L = output_2.mat1;
-      D = output_2.mat2;
-      Cor_mat_temp = L*D*(L.transpose());
-      
-      
-      if(m>=2*k1+4)
-      {
-        // regular case
-        
-        // calculate next probability
-        p_k1_nomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,4), mu_temp.head(4), Cor_mat_temp.block(0,0,4,4));
-        p_k1_nomi = std::max(p_k1_nomi, pow(tol,4));
-        p_k1_denomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,2), mu_temp.head(2), Cor_mat_temp.block(0,0,2,2));
-        p_k1_denomi = std::max(p_k1_denomi, pow(tol,2));
-        p(k1) = p_k1_nomi/p_k1_denomi;
-        
-        
-        // update gradients
-        output_3 = TVBSo_grad_non_cdf_qvn_by_cdf_bvn_cpp(mu_temp.head(4), Cor_mat_temp.block(0,0,4,4), x_temp.segment((2*k1+1)-1,4));
-        g_from_p_mu = output_3.mat1;
-        g_from_p_cov = output_3.mat2;
-        g_from_p_c = output_3.mat3;
-        
-        
-        // update g_rho_rho
-        g_rho_rho_add.resize(g_cu_mul_mu_sig.rows(), 4+3+2+1);
-        g_rho_rho_add.block(0,0,g_rho_rho_add.rows(),4) = g_cu_mul_mu_sig.block(0,(m-2*k1+1)-1,g_cu_mul_mu_sig.rows(),4);
-        g_rho_rho_add.block(0,4,g_rho_rho_add.rows(),3) = g_cu_mul_mu_sig.block(0,(2*m-4*k1+1)-1,g_cu_mul_mu_sig.rows(),3);
-        g_rho_rho_add.block(0,4+3,g_rho_rho_add.rows(),2) = g_cu_mul_mu_sig.block(0,(3*m-6*k1)-1,g_cu_mul_mu_sig.rows(),2);
-        g_rho_rho_add.block(0,4+3+2,g_rho_rho_add.rows(),1) = g_cu_mul_mu_sig.block(0,(4*m-8*k1-2)-1,g_cu_mul_mu_sig.rows(),1);
-        
-        g_rho_rho += 1.0/p(k1)*( g_cu_mul_mu_sig.block(0,0,g_cu_mul_mu_sig.rows(),4)*g_from_p_mu +  g_rho_rho_add*g_from_p_cov);
-        
-        
-        // update g_cu_mul_from_pc
-        g_cu_mul_from_pc.segment((2*k1+1)-1,4) += g_from_p_c/p(k1);
-        
-        
-        // update g_c
-        g_c_add.resize(g_cu_mu_lc.rows(),4+3+2+1);
-        g_c_add.block(0,0,g_cu_mu_lc.rows(),4) = g_cu_mu_lc.block(0,(m-2*k1+1)-1,g_cu_mu_lc.rows(),4);
-        g_c_add.block(0,4,g_cu_mu_lc.rows(),3) = g_cu_mu_lc.block(0,(2*m-4*k1+1)-1,g_cu_mu_lc.rows(),3);
-        g_c_add.block(0,4+3,g_cu_mu_lc.rows(),2) = g_cu_mu_lc.block(0,(3*m-6*k1)-1,g_cu_mu_lc.rows(),2);
-        g_c_add.block(0,4+3+2,g_cu_mu_lc.rows(),1) = g_cu_mu_lc.block(0,(4*m-8*k1-2)-1,g_cu_mu_lc.rows(),1);
-        
-        g_c += 1.0/p(k1)*( g_cu_mu_lc.block(0,0,g_cu_mu_lc.rows(),3)*g_from_p_mu + g_c_add*g_from_p_cov );
-        
-      }
-      else
-      {
-        // last iteration, if uneven dimension
-        
-        // calculate next probability
-        p_k1_nomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,3), mu_temp.head(3), Cor_mat_temp.block(0,0,3,3));
-        p_k1_nomi = std::max(p_k1_nomi, pow(tol,3));
-        p_k1_denomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,2), mu_temp.head(2), Cor_mat_temp.block(0,0,2,2));
-        p_k1_denomi = std::max(p_k1_denomi, pow(tol,2));
-        
-        p(k1) = p_k1_nomi/p_k1_denomi;
-        
-        // update gradients
-        
-        // // // 
-        // Errors of e-6 magnitude occur here
-        // // //
-        output_3 = TVBSo_grad_non_cdf_tvn_by_cdf_bvn_cpp(mu_temp.head(3), Cor_mat_temp.block(0,0,3,3), x_temp.segment((2*k1+1)-1,3));
-        g_from_p_mu = output_3.mat1;
-        g_from_p_cov = output_3.mat2;
-        g_from_p_c = output_3.mat3;
-        
-        
-        // update g_rho_rho
-        g_rho_rho_add.resize(g_cu_mul_mu_sig.rows(), 3+2+1);
-        g_rho_rho_add.block(0,0,g_rho_rho_add.rows(),3) = g_cu_mul_mu_sig.block(0,(m-2*k1+1)-1,g_cu_mul_mu_sig.rows(),3);
-        g_rho_rho_add.block(0,3,g_rho_rho_add.rows(),2) = g_cu_mul_mu_sig.block(0,(2*m-4*k1+1)-1,g_cu_mul_mu_sig.rows(),2);
-        g_rho_rho_add.block(0,3+2,g_rho_rho_add.rows(),1) = g_cu_mul_mu_sig.block(0,3*m-6*k1-1,g_cu_mul_mu_sig.rows(),1);
-        
-        // // // 
-        // Errors of e-4 magnitude occur here
-        // // //
-        g_rho_rho += 1.0/p(k1)*( g_cu_mul_mu_sig.block(0,0,g_cu_mul_mu_sig.rows(),3)*g_from_p_mu +  g_rho_rho_add*g_from_p_cov);
-        
-        
-        // update g_cu_mul_from_pc
-        g_cu_mul_from_pc.segment((2*k1+1)-1,3) += g_from_p_c/p(k1);
-        
-        
-        // update g_c
-        g_c_add.resize(g_cu_mu_lc.rows(),3+2+1);
-        g_c_add.block(0,0,g_cu_mu_lc.rows(),3) = g_cu_mu_lc.block(0,(m-2*k1+1)-1,g_cu_mu_lc.rows(),3);
-        g_c_add.block(0,3,g_cu_mu_lc.rows(),2) = g_cu_mu_lc.block(0,(2*m-4*k1+1)-1,g_cu_mu_lc.rows(),2);
-        g_c_add.block(0,3+2,g_cu_mu_lc.rows(),1) = g_cu_mu_lc.block(0,3*m-6*k1-1,g_cu_mu_lc.rows(),1);
-        
-        g_c += 1.0/p(k1)*( g_cu_mu_lc.block(0,0,g_cu_mu_lc.rows(),3)*g_from_p_mu + g_c_add*g_from_p_cov );
-      }
-      
-    }
-    
-    
-    
-    output_2 = TVBSo_grad_cdf_qvn_cpp(x_temp.head(4), Cor_mat_ordered.block(0,0,4,4));
-    Eigen::VectorXd g_w = output_2.mat1;
-    Eigen::VectorXd g_rho = output_2.mat2;
-    
-    
-    // adding contribution of rho12,rho13, and rho14 from initial cdfqvn function
-    g_rho_rho.head(3) += g_rho.head(3)/p(0);
-    
-    
-    // adding contribution of rho23 & rho24 from initial cdfqvn function
-    g_rho_rho.segment(m-1,2) += g_rho.segment(3,2)/p(0);
-    
-    
-    // adding contribution of rho34 from initial cdfqvn function
-    g_rho_rho(2*m-2-1) += g_rho(5)/p(0);
-    
-    
-    // adding contribution of all abscissa originating from the probability function
-    g_c += g_cu_mul_from_pc;
-    
-    
-    // inserting gradient contribution of first four abscissae directly from the cdfqvn function
-    g_c.head(4) += g_w/p(0);
-    
-    
-    if(log_out == 0)
-    {
-      p_out(0) = p.prod();
-      g_c = (p_out(0)*g_c);
-      g_rho_rho = (p_out(0)*g_rho_rho);
-    }
-    else
-    {
-      p_out(0) = p.array().log().sum();
-    }
-    
-  }
-  
-  
-  
-  
-  // // // // // // // // // // // // // // //
-  // invert the reordering                  //
-  // // // // // // // // // // // // // // //
-  
-  // g_rho_rho has to be transformed into matrix form, reordered and then back into vectorization
-  
-  Eigen::MatrixXd g_rho_rho_mat = TVBS_vec_2_upper_diag_cpp(g_rho_rho, 0);
-  Eigen::MatrixXd g_rho_rho_mat_new = g_rho_rho_mat + g_rho_rho_mat.transpose();
-
-  Eigen::VectorXd g_c_new(m);
-  g_c_new.setZero();
-  
-  for(int i_row=0; i_row<m; i_row++)
-  {
-    g_c_new(temp1(i_row)) = g_c(i_row);
-    for(int i_col=0; i_col<m; i_col++)
-    {
-      g_rho_rho_mat(temp1(i_row),temp1(i_col)) = g_rho_rho_mat_new(i_row,i_col);
-    }
-  }
-  g_c = g_c_new;
-  g_rho_rho = TVBS_lower_tri_entries_cpp(g_rho_rho_mat,0);
-  
-  // // // // // // // // // // // // // // //
-  // end of reorder invertion               //
-  // // // // // // // // // // // // // // //
-  
-  
-  
-  Eigen::VectorXd output_final(1+g_c.size()+g_rho_rho.size()); 
-  output_final << g_c, g_rho_rho, p_out(0);
-  return output_final;
-}
+   // determine dimension of the problem
+   int m = x_norm.size();
+   
+   // calculate number of iterations
+   int k_tilde = std::max((m-1)/2,1);
+   
+   
+   // initialize variables for the output
+   Eigen::VectorXd p(k_tilde), p_out(1), g_c(m), g_rho_rho((m*(m-1))/2);
+   p.setZero();
+   p_out.setZero();
+   g_c.setZero();
+   g_rho_rho.setZero();
+   p_out.setZero();
+   
+   // initialize mu_zero variable
+   Eigen::VectorXd mu_zero(m);
+   mu_zero.setZero();
+   
+   
+   
+   
+   // // // // // // // // // // //
+   // reorder the dimensions     //
+   // // // // // // // // // // //
+   
+   struct TVBS_Vec_Mat_Vec output_reorder = TVBS_reorder_sig_cpp(x_norm, Cor_mat);
+   
+   Eigen::MatrixXd Cor_mat_temp = output_reorder.mat1;        // we'll work with this one
+   Eigen::MatrixXd Cor_mat_ordered = Cor_mat_temp;            // we'll keep this as the original one
+   
+   Eigen::VectorXd x_temp = output_reorder.vec1;
+   
+   Eigen::VectorXd temp1 = output_reorder.vec2;
+   
+   Eigen::VectorXd mu_temp(m);
+   mu_temp.setZero();
+   
+   // // // // // // // // // // //
+   // end of reordering          //
+   // // // // // // // // // // //
+   
+   
+   
+   // calculate initial LDLT decomposition
+   struct TVBS_Matrix_two output_2 = TVBS_LDLT_decomp_cpp(Cor_mat_temp);
+   Eigen::MatrixXd L = output_2.mat1;
+   Eigen::MatrixXd D = output_2.mat2;
+   
+   
+   // deal with low dimensional cases directly
+   if(m==2)
+   {
+     struct TVBS_double_three output_3 = TVBS_grad_cdf_bvn_cpp(x_temp, Cor_mat_temp.block(0,0,2,2));
+     g_c << output_3.d1, output_3.d2;
+     g_rho_rho(0) = output_3.d3;
+     p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(2), Cor_mat_temp.block(0,0,2,2));
+     
+     // if the output should be for log
+     if(log_out==1)
+     {
+       g_c /= p_out(0);
+       g_rho_rho /= p_out(0);
+       double p = log(p_out(0));
+       p_out(0) = p;
+     }
+   }
+   else if(m==3)
+   {
+     struct TVBS_Matrix_two output_2 = TVBSo_grad_cdf_tvn_cpp(x_temp, Cor_mat_temp.block(0,0,3,3));
+     g_c = output_2.mat1;
+     g_rho_rho = output_2.mat2;
+     p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(3), Cor_mat_temp.block(0,0,3,3));
+     
+     // if the output should be for log
+     if(log_out==1)
+     {
+       g_c /= p_out(0);
+       g_rho_rho /= p_out(0);
+       double p = log(p_out(0));
+       p_out(0) = p;
+     }
+   }
+   else if(m==4)
+   {
+     struct TVBS_Matrix_two output_2 = TVBSo_grad_cdf_qvn_cpp(x_temp, Cor_mat_temp.block(0,0,4,4));
+     g_c = output_2.mat1;
+     g_rho_rho = output_2.mat2;
+     p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
+     
+     // if the output should be for log
+     if(log_out==1)
+     {
+       g_c /= p_out(0);
+       g_rho_rho /= p_out(0);
+       double p = log(p_out(0));
+       p_out(0) = p;
+     }
+   }
+   else 
+   {
+     
+     // initiate some variables
+     struct TVBS_Matrix_two output_2;
+     struct TVBS_Matrix_three output_3;
+     struct TVBS_Matrix_four output_4;
+     Eigen::VectorXd mu_tilde;
+     Eigen::MatrixXd omega, g_y, g_mu_mean, g_x_mean, g_c_mean, g_mu_cov, g_x_cov, g_c_cov, g_cu_mul_mu_sig, g_cu_mu_lc, g_cu_mul_mu_sig_rhs, g_cu_mu_lc_rhs, g_rho_rho_add, g_c_add;
+     double p_k1_nomi, p_k1_denomi;
+     Eigen::VectorXd g_from_p_mu, g_from_p_cov, g_from_p_c;
+     
+     
+     // calculate P1 using the first four variables
+     p(0) = TVBS_pmvnorm_old_cpp(x_temp.head(4), mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
+     
+     
+     Eigen::VectorXd g_cu_mul_from_pc(m);
+     g_cu_mul_from_pc.setZero();
+     
+     
+     // start here from k1=1 to make indexing easier
+     for(int k1=1; k1<k_tilde; k1++)
+     {
+       // claculate the truncated mean and variance
+       output_2 = TVBS_truncate_bi_normal_cpp(mu_temp.head(2), D.block(0,0,2,2), x_temp.segment((2*k1-1)-1,2),tol);
+       mu_tilde = output_2.mat1;
+       omega = output_2.mat2;
+       
+       
+       // set global variables according to the case (if they have already been truncated or not)
+       if(k1==1)
+       {
+         condcovsigtrunc_global = 0;
+         condcovmeantrunc_global = 0;
+       }
+       else
+       {
+         condcovsigtrunc_global = 1;
+         condcovmeantrunc_global = 1;
+       }
+       
+       
+       output_4 = TVBS_g_cond_mean_trunc_cpp(Eigen::MatrixXd::Identity(m-2*k1, m-2*k1), mu_temp, Cor_mat_temp, x_temp.segment((2*k1-1)-1,2));
+       g_y = output_4.mat1;
+       g_mu_mean = output_4.mat2;
+       g_x_mean = output_4.mat3;
+       g_c_mean = output_4.mat4;
+       
+       
+       output_3 = TVBS_g_cond_cov_trunc_cpp(mu_temp, Cor_mat_temp, x_temp.segment((2*k1-1)-1,2));
+       g_mu_cov = output_3.mat1;
+       g_x_cov = output_3.mat2;
+       g_c_cov = output_3.mat3;
+       
+       
+       // update g_cu_mul_mu_sig and g_cu_mu_lc
+       if(k1==1)
+       {
+         g_cu_mul_mu_sig.resize(g_x_mean.rows(), g_x_mean.cols()+g_x_cov.cols());
+         g_cu_mul_mu_sig.block(0,0,g_x_mean.rows(),g_x_mean.cols()) = g_x_mean;
+         g_cu_mul_mu_sig.block(0,g_x_mean.cols(),g_x_cov.rows(),g_x_cov.cols()) = g_x_cov;
+         
+         g_cu_mu_lc.resize(g_c_mean.rows()+m-2,g_c_mean.cols()+g_c_cov.cols());
+         g_cu_mu_lc.setZero();
+         g_cu_mu_lc.block(0,0,g_c_mean.rows(),g_c_mean.cols()) = g_c_mean;
+         g_cu_mu_lc.block(0,g_c_mean.cols(),g_c_cov.rows(),g_c_cov.cols()) = g_c_cov;
+         
+       }
+       else if(k1>1)
+       {
+         g_cu_mul_mu_sig_rhs.resize(g_mu_mean.rows()+g_x_mean.rows(), g_mu_mean.cols()+g_mu_cov.cols());
+         g_cu_mul_mu_sig_rhs.block(0,0,g_mu_mean.rows(),g_mu_mean.cols()) = g_mu_mean;
+         g_cu_mul_mu_sig_rhs.block(0,g_mu_mean.cols(),g_mu_cov.rows(),g_mu_cov.cols()) = g_mu_cov;
+         g_cu_mul_mu_sig_rhs.block(g_mu_mean.rows(),0,g_x_mean.rows(),g_x_mean.cols()) = g_x_mean;
+         g_cu_mul_mu_sig_rhs.block(g_mu_mean.rows(),g_mu_mean.cols(),g_x_cov.rows(),g_x_cov.cols()) = g_x_cov;
+         g_cu_mul_mu_sig = g_cu_mul_mu_sig*g_cu_mul_mu_sig_rhs;
+         
+         // update g_cu_mu_lc
+         g_cu_mu_lc_rhs.resize(g_mu_mean.rows()+g_x_mean.rows(),g_mu_mean.cols()+g_mu_cov.cols());
+         g_cu_mu_lc_rhs.block(0,0,g_mu_mean.rows(),g_mu_mean.cols()) = g_mu_mean;
+         g_cu_mu_lc_rhs.block(0,g_mu_mean.cols(),g_mu_cov.rows(),g_mu_cov.cols()) = g_mu_cov;
+         g_cu_mu_lc_rhs.block(g_mu_mean.rows(),0,g_x_mean.rows(),g_x_mean.cols()) = g_x_mean;
+         g_cu_mu_lc_rhs.block(g_mu_mean.rows(),g_mu_mean.cols(),g_x_cov.rows(),g_x_cov.cols()) = g_x_cov;
+         g_cu_mu_lc = g_cu_mu_lc*g_cu_mu_lc_rhs;
+         
+         g_cu_mu_lc.block((2*(k1-1)+1)-1,0,2,g_c_mean.cols()) = g_c_mean;
+         g_cu_mu_lc.block((2*(k1-1)+1)-1,g_c_mean.cols(),2,g_c_cov.cols()) = g_c_cov;
+       }
+       
+       
+       // update pi_kp1
+       mu_temp = mu_temp.segment(2,m-2*k1) + L.block(2,0,m-2*k1,2)*(mu_tilde-mu_temp.head(2));
+       
+       
+       // update the covariance matrix LDLT decomposition
+       output_2 = TVBS_LDLT_update_cpp(L,D,omega,2);
+       L = output_2.mat1;
+       D = output_2.mat2;
+       Cor_mat_temp = L*D*(L.transpose());
+       
+       
+       if(m>=2*k1+4)
+       {
+         // regular case
+         
+         // calculate next probability
+         p_k1_nomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,4), mu_temp.head(4), Cor_mat_temp.block(0,0,4,4));
+         p_k1_nomi = std::max(p_k1_nomi, pow(tol,4));
+         p_k1_denomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,2), mu_temp.head(2), Cor_mat_temp.block(0,0,2,2));
+         p_k1_denomi = std::max(p_k1_denomi, pow(tol,2));
+         p(k1) = p_k1_nomi/p_k1_denomi;
+         
+         
+         // update gradients
+         output_3 = TVBSo_grad_non_cdf_qvn_by_cdf_bvn_cpp(mu_temp.head(4), Cor_mat_temp.block(0,0,4,4), x_temp.segment((2*k1+1)-1,4));
+         g_from_p_mu = output_3.mat1;
+         g_from_p_cov = output_3.mat2;
+         g_from_p_c = output_3.mat3;
+         
+         
+         // update g_rho_rho
+         g_rho_rho_add.resize(g_cu_mul_mu_sig.rows(), 4+3+2+1);
+         g_rho_rho_add.block(0,0,g_rho_rho_add.rows(),4) = g_cu_mul_mu_sig.block(0,(m-2*k1+1)-1,g_cu_mul_mu_sig.rows(),4);
+         g_rho_rho_add.block(0,4,g_rho_rho_add.rows(),3) = g_cu_mul_mu_sig.block(0,(2*m-4*k1+1)-1,g_cu_mul_mu_sig.rows(),3);
+         g_rho_rho_add.block(0,4+3,g_rho_rho_add.rows(),2) = g_cu_mul_mu_sig.block(0,(3*m-6*k1)-1,g_cu_mul_mu_sig.rows(),2);
+         g_rho_rho_add.block(0,4+3+2,g_rho_rho_add.rows(),1) = g_cu_mul_mu_sig.block(0,(4*m-8*k1-2)-1,g_cu_mul_mu_sig.rows(),1);
+         
+         g_rho_rho += 1.0/p(k1)*( g_cu_mul_mu_sig.block(0,0,g_cu_mul_mu_sig.rows(),4)*g_from_p_mu +  g_rho_rho_add*g_from_p_cov);
+         
+         
+         // update g_cu_mul_from_pc
+         g_cu_mul_from_pc.segment((2*k1+1)-1,4) += g_from_p_c/p(k1);
+         
+         
+         // update g_c
+         g_c_add.resize(g_cu_mu_lc.rows(),4+3+2+1);
+         g_c_add.block(0,0,g_cu_mu_lc.rows(),4) = g_cu_mu_lc.block(0,(m-2*k1+1)-1,g_cu_mu_lc.rows(),4);
+         g_c_add.block(0,4,g_cu_mu_lc.rows(),3) = g_cu_mu_lc.block(0,(2*m-4*k1+1)-1,g_cu_mu_lc.rows(),3);
+         g_c_add.block(0,4+3,g_cu_mu_lc.rows(),2) = g_cu_mu_lc.block(0,(3*m-6*k1)-1,g_cu_mu_lc.rows(),2);
+         g_c_add.block(0,4+3+2,g_cu_mu_lc.rows(),1) = g_cu_mu_lc.block(0,(4*m-8*k1-2)-1,g_cu_mu_lc.rows(),1);
+         
+         g_c += 1.0/p(k1)*( g_cu_mu_lc.block(0,0,g_cu_mu_lc.rows(),3)*g_from_p_mu + g_c_add*g_from_p_cov );
+         
+       }
+       else
+       {
+         // last iteration, if uneven dimension
+         
+         // calculate next probability
+         p_k1_nomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,3), mu_temp.head(3), Cor_mat_temp.block(0,0,3,3));
+         p_k1_nomi = std::max(p_k1_nomi, pow(tol,3));
+         p_k1_denomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,2), mu_temp.head(2), Cor_mat_temp.block(0,0,2,2));
+         p_k1_denomi = std::max(p_k1_denomi, pow(tol,2));
+         
+         p(k1) = p_k1_nomi/p_k1_denomi;
+         
+         // update gradients
+         
+         // // // 
+         // Errors of e-6 magnitude occur here
+         // // //
+         output_3 = TVBSo_grad_non_cdf_tvn_by_cdf_bvn_cpp(mu_temp.head(3), Cor_mat_temp.block(0,0,3,3), x_temp.segment((2*k1+1)-1,3));
+         g_from_p_mu = output_3.mat1;
+         g_from_p_cov = output_3.mat2;
+         g_from_p_c = output_3.mat3;
+         
+         
+         // update g_rho_rho
+         g_rho_rho_add.resize(g_cu_mul_mu_sig.rows(), 3+2+1);
+         g_rho_rho_add.block(0,0,g_rho_rho_add.rows(),3) = g_cu_mul_mu_sig.block(0,(m-2*k1+1)-1,g_cu_mul_mu_sig.rows(),3);
+         g_rho_rho_add.block(0,3,g_rho_rho_add.rows(),2) = g_cu_mul_mu_sig.block(0,(2*m-4*k1+1)-1,g_cu_mul_mu_sig.rows(),2);
+         g_rho_rho_add.block(0,3+2,g_rho_rho_add.rows(),1) = g_cu_mul_mu_sig.block(0,3*m-6*k1-1,g_cu_mul_mu_sig.rows(),1);
+         
+         // // // 
+         // Errors of e-4 magnitude occur here
+         // // //
+         g_rho_rho += 1.0/p(k1)*( g_cu_mul_mu_sig.block(0,0,g_cu_mul_mu_sig.rows(),3)*g_from_p_mu +  g_rho_rho_add*g_from_p_cov);
+         
+         
+         // update g_cu_mul_from_pc
+         g_cu_mul_from_pc.segment((2*k1+1)-1,3) += g_from_p_c/p(k1);
+         
+         
+         // update g_c
+         g_c_add.resize(g_cu_mu_lc.rows(),3+2+1);
+         g_c_add.block(0,0,g_cu_mu_lc.rows(),3) = g_cu_mu_lc.block(0,(m-2*k1+1)-1,g_cu_mu_lc.rows(),3);
+         g_c_add.block(0,3,g_cu_mu_lc.rows(),2) = g_cu_mu_lc.block(0,(2*m-4*k1+1)-1,g_cu_mu_lc.rows(),2);
+         g_c_add.block(0,3+2,g_cu_mu_lc.rows(),1) = g_cu_mu_lc.block(0,3*m-6*k1-1,g_cu_mu_lc.rows(),1);
+         
+         g_c += 1.0/p(k1)*( g_cu_mu_lc.block(0,0,g_cu_mu_lc.rows(),3)*g_from_p_mu + g_c_add*g_from_p_cov );
+       }
+       
+     }
+     
+     
+     
+     output_2 = TVBSo_grad_cdf_qvn_cpp(x_temp.head(4), Cor_mat_ordered.block(0,0,4,4));
+     Eigen::VectorXd g_w = output_2.mat1;
+     Eigen::VectorXd g_rho = output_2.mat2;
+     
+     
+     // adding contribution of rho12,rho13, and rho14 from initial cdfqvn function
+     g_rho_rho.head(3) += g_rho.head(3)/p(0);
+     
+     
+     // adding contribution of rho23 & rho24 from initial cdfqvn function
+     g_rho_rho.segment(m-1,2) += g_rho.segment(3,2)/p(0);
+     
+     
+     // adding contribution of rho34 from initial cdfqvn function
+     g_rho_rho(2*m-2-1) += g_rho(5)/p(0);
+     
+     
+     // adding contribution of all abscissa originating from the probability function
+     g_c += g_cu_mul_from_pc;
+     
+     
+     // inserting gradient contribution of first four abscissae directly from the cdfqvn function
+     g_c.head(4) += g_w/p(0);
+     
+     
+     if(log_out == 0)
+     {
+       p_out(0) = p.prod();
+       g_c = (p_out(0)*g_c);
+       g_rho_rho = (p_out(0)*g_rho_rho);
+     }
+     else
+     {
+       p_out(0) = p.array().log().sum();
+     }
+     
+   }
+   
+   
+   
+   
+   // // // // // // // // // // // // // // //
+   // invert the reordering                  //
+   // // // // // // // // // // // // // // //
+   
+   // g_rho_rho has to be transformed into matrix form, reordered and then back into vectorization
+   
+   Eigen::MatrixXd g_rho_rho_mat = TVBS_vec_2_upper_diag_cpp(g_rho_rho, 0);
+   Eigen::MatrixXd g_rho_rho_mat_new = g_rho_rho_mat + g_rho_rho_mat.transpose();
+   
+   Eigen::VectorXd g_c_new(m);
+   g_c_new.setZero();
+   
+   for(int i_row=0; i_row<m; i_row++)
+   {
+     g_c_new[temp1[i_row]] = g_c(i_row);
+     for(int i_col=0; i_col<m; i_col++)
+     {
+       g_rho_rho_mat((int)temp1[i_row],(int)temp1[i_col]) = g_rho_rho_mat_new(i_row,i_col);
+     }
+   }
+   g_c = g_c_new;
+   g_rho_rho = TVBS_lower_tri_entries_cpp(g_rho_rho_mat,0);
+   
+   // // // // // // // // // // // // // // //
+   // end of reorder invertion               //
+   // // // // // // // // // // // // // // //
+   
+   
+   
+   Eigen::VectorXd output_final(1+g_c.size()+g_rho_rho.size()); 
+   output_final << g_c, g_rho_rho, p_out(0);
+   return output_final;
+ }
 
 
 
@@ -2094,185 +2096,186 @@ Eigen::VectorXd TVBS(Eigen::VectorXd x_norm, Eigen::MatrixXd Cor_mat, int log_ou
 // [[Rcpp::export]]
 double TVBS_p(Eigen::VectorXd x_norm, Eigen::MatrixXd Cor_mat, int log_out = 0)
 {
-  // determine dimension of the problem
-  int m = x_norm.size();
-  
-  // calculate number of iterations
-  int k_tilde = std::max((m-1)/2,1);
-  
-  
-  // initialize variables for the output
-  Eigen::VectorXd p(k_tilde), p_out(1), g_c(m), g_rho_rho((m*(m-1))/2);
-  p.setZero();
-  p_out.setZero();
-  g_c.setZero();
-  g_rho_rho.setZero();
-  p_out.setZero();
-  
-  // initialize mu_zero variable
-  Eigen::VectorXd mu_zero(m);
-  mu_zero.setZero();
-  
-  
-  
-  
-  // // // // // // // // // // //
-  // reorder the dimensions     //
-  // // // // // // // // // // //
-  
-  struct TVBS_Vec_Mat_Vec output_reorder = TVBS_reorder_sig_cpp(x_norm, Cor_mat);
-  
-  Eigen::MatrixXd Cor_mat_temp = output_reorder.mat1;        // we'll work with this one
-  Eigen::MatrixXd Cor_mat_ordered = Cor_mat_temp;            // we'll keep this as the original one
-  
-  Eigen::VectorXd x_temp = output_reorder.vec1;
-  
-  Eigen::VectorXd temp1 = output_reorder.vec2;
-  
-  Eigen::VectorXd mu_temp(m);
-  mu_temp.setZero();
-  
-  // // // // // // // // // // //
-  // end of reordering          //
-  // // // // // // // // // // //
-  
-  
-  
-  
-  // calculate initial LDLT decomposition
-  struct TVBS_Matrix_two output_2 = TVBS_LDLT_decomp_cpp(Cor_mat_temp);
-  Eigen::MatrixXd L = output_2.mat1;
-  Eigen::MatrixXd D = output_2.mat2;
-  
-  
-  
-  // deal with low dimensional cases directly
-  if(m==2)
-  {
-    p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(2), Cor_mat_temp.block(0,0,2,2));
-    
-    // if the output should be for log
-    if(log_out==1)
-    {
-      double p_temp = log(p_out(0));
-      p_out(0) = p_temp;
-    }
-  }
-  else if(m==3)
-  {
-    p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(3), Cor_mat_temp.block(0,0,3,3));
-    
-    // if the output should be for log
-    if(log_out==1)
-    {
-      double p_temp = log(p_out(0));
-      p_out(0) = p_temp;
-    }
-  }
-  else if(m==4)
-  {
-    p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
-    
-    // if the output should be for log
-    if(log_out==1)
-    {
-      double p_temp = log(p_out(0));
-      p_out(0) = p_temp;
-    }
-  }
-  else 
-  {
-    // initiate some variables
-    struct TVBS_Matrix_two output_2;
-    struct TVBS_Matrix_three output_3;
-    struct TVBS_Matrix_four output_4;
-    Eigen::VectorXd mu_tilde;
-    Eigen::MatrixXd omega, g_y, g_mu_mean, g_x_mean, g_c_mean, g_mu_cov, g_x_cov, g_c_cov, g_cu_mul_mu_sig, g_cu_mu_lc, g_cu_mul_mu_sig_rhs, g_cu_mu_lc_rhs, g_rho_rho_add, g_c_add;
-    double p_k1_nomi, p_k1_denomi;
+   // determine dimension of the problem
+   int m = x_norm.size();
+   
+   // calculate number of iterations
+   int k_tilde = std::max((m-1)/2,1);
+   
+   
+   // initialize variables for the output
+   Eigen::VectorXd p(k_tilde), p_out(1), g_c(m), g_rho_rho((m*(m-1))/2);
+   p.setZero();
+   p_out.setZero();
+   g_c.setZero();
+   g_rho_rho.setZero();
+   p_out.setZero();
+   
+   // initialize mu_zero variable
+   Eigen::VectorXd mu_zero(m);
+   mu_zero.setZero();
+   
+   
+   
+   
+   // // // // // // // // // // //
+   // reorder the dimensions     //
+   // // // // // // // // // // //
+   
+   struct TVBS_Vec_Mat_Vec output_reorder = TVBS_reorder_sig_cpp(x_norm, Cor_mat);
+   
+   Eigen::MatrixXd Cor_mat_temp = output_reorder.mat1;        // we'll work with this one
+   Eigen::MatrixXd Cor_mat_ordered = Cor_mat_temp;            // we'll keep this as the original one
+   
+   Eigen::VectorXd x_temp = output_reorder.vec1;
+   
+   Eigen::VectorXd temp1 = output_reorder.vec2;
+   
+   Eigen::VectorXd mu_temp(m);
+   mu_temp.setZero();
+   
+   // // // // // // // // // // //
+   // end of reordering          //
+   // // // // // // // // // // //
+   
+   
+   
+   
+   // calculate initial LDLT decomposition
+   struct TVBS_Matrix_two output_2 = TVBS_LDLT_decomp_cpp(Cor_mat_temp);
+   Eigen::MatrixXd L = output_2.mat1;
+   Eigen::MatrixXd D = output_2.mat2;
+   
+   
+   
+   // deal with low dimensional cases directly
+   if(m==2)
+   {
+     p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(2), Cor_mat_temp.block(0,0,2,2));
+     
+     // if the output should be for log
+     if(log_out==1)
+     {
+       double p_temp = log(p_out(0));
+       p_out(0) = p_temp;
+     }
+   }
+   else if(m==3)
+   {
+     p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(3), Cor_mat_temp.block(0,0,3,3));
+     
+     // if the output should be for log
+     if(log_out==1)
+     {
+       double p_temp = log(p_out(0));
+       p_out(0) = p_temp;
+     }
+   }
+   else if(m==4)
+   {
+     p_out(0) = TVBS_pmvnorm_old_cpp(x_temp, mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
+     
+     // if the output should be for log
+     if(log_out==1)
+     {
+       double p_temp = log(p_out(0));
+       p_out(0) = p_temp;
+     }
+   }
+   else 
+   {
+     // initiate some variables
+     struct TVBS_Matrix_two output_2;
+     struct TVBS_Matrix_three output_3;
+     struct TVBS_Matrix_four output_4;
+     Eigen::VectorXd mu_tilde;
+     Eigen::MatrixXd omega, g_y, g_mu_mean, g_x_mean, g_c_mean, g_mu_cov, g_x_cov, g_c_cov, g_cu_mul_mu_sig, g_cu_mu_lc, g_cu_mul_mu_sig_rhs, g_cu_mu_lc_rhs, g_rho_rho_add, g_c_add;
+     double p_k1_nomi, p_k1_denomi;
+     
+     
+     // calculate P1 using the first four variables
+     p(0) = TVBS_pmvnorm_old_cpp(x_temp.head(4), mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
+     
+     
+     // start here from k1=1 to make indexing easier
+     for(int k1=1; k1<k_tilde; k1++)
+     {
+       // claculate the truncated mean and variance
+       output_2 = TVBS_truncate_bi_normal_cpp(mu_temp.head(2), D.block(0,0,2,2), x_temp.segment((2*k1-1)-1,2),tol);
+       mu_tilde = output_2.mat1;
+       omega = output_2.mat2;
+       
+       
+       // set global variables according to the case (if they have already been truncated or not)
+       if(k1==1)
+       {
+         condcovsigtrunc_global = 0;
+         condcovmeantrunc_global = 0;
+       }
+       else
+       {
+         condcovsigtrunc_global = 1;
+         condcovmeantrunc_global = 1;
+       }
+       
+       
+       
+       // update pi_kp1
+       mu_temp = mu_temp.segment(2,m-2*k1) + L.block(2,0,m-2*k1,2)*(mu_tilde-mu_temp.head(2));
+       
+       
+       // update the covariance matrix LDLT decomposition
+       output_2 = TVBS_LDLT_update_cpp(L,D,omega,2);
+       L = output_2.mat1;
+       D = output_2.mat2;
+       Cor_mat_temp = L*D*(L.transpose());
+       
+       
+       if(m>=2*k1+4)
+       {
+         // regular case
+         
+         // calculate next probability
+         p_k1_nomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,4), mu_temp.head(4), Cor_mat_temp.block(0,0,4,4));
+         p_k1_nomi = std::max(p_k1_nomi, pow(tol,4));
+         p_k1_denomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,2), mu_temp.head(2), Cor_mat_temp.block(0,0,2,2));
+         p_k1_denomi = std::max(p_k1_denomi, pow(tol,2));
+         p(k1) = p_k1_nomi/p_k1_denomi;
+         
+       }
+       else
+       {
+         // last iteration, if uneven dimension
+         
+         // calculate next probability
+         p_k1_nomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,3), mu_temp.head(3), Cor_mat_temp.block(0,0,3,3));
+         p_k1_nomi = std::max(p_k1_nomi, pow(tol,3));
+         p_k1_denomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,2), mu_temp.head(2), Cor_mat_temp.block(0,0,2,2));
+         p_k1_denomi = std::max(p_k1_denomi, pow(tol,2));
+         
+         
+         p(k1) = p_k1_nomi/p_k1_denomi;
+         
+       }
+       
+     }
+     
+     
+     if(log_out == 0)
+     {
+       p_out(0) = p.prod();
+     }
+     else
+     {
+       p_out(0) = p.array().log().sum();
+     }
+     
+     
+   }
+   
+   double p_final = p_out(0);
+   
+   return p_final;
+ }
 
-    
-    // calculate P1 using the first four variables
-    p(0) = TVBS_pmvnorm_old_cpp(x_temp.head(4), mu_zero.head(4), Cor_mat_temp.block(0,0,4,4));
-    
-    
-    // start here from k1=1 to make indexing easier
-    for(int k1=1; k1<k_tilde; k1++)
-    {
-      // claculate the truncated mean and variance
-      output_2 = TVBS_truncate_bi_normal_cpp(mu_temp.head(2), D.block(0,0,2,2), x_temp.segment((2*k1-1)-1,2),tol);
-      mu_tilde = output_2.mat1;
-      omega = output_2.mat2;
-      
-      
-      // set global variables according to the case (if they have already been truncated or not)
-      if(k1==1)
-      {
-        condcovsigtrunc_global = 0;
-        condcovmeantrunc_global = 0;
-      }
-      else
-      {
-        condcovsigtrunc_global = 1;
-        condcovmeantrunc_global = 1;
-      }
-      
-      
-      
-      // update pi_kp1
-      mu_temp = mu_temp.segment(2,m-2*k1) + L.block(2,0,m-2*k1,2)*(mu_tilde-mu_temp.head(2));
-      
-      
-      // update the covariance matrix LDLT decomposition
-      output_2 = TVBS_LDLT_update_cpp(L,D,omega,2);
-      L = output_2.mat1;
-      D = output_2.mat2;
-      Cor_mat_temp = L*D*(L.transpose());
-      
-      
-      if(m>=2*k1+4)
-      {
-        // regular case
-        
-        // calculate next probability
-        p_k1_nomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,4), mu_temp.head(4), Cor_mat_temp.block(0,0,4,4));
-        p_k1_nomi = std::max(p_k1_nomi, pow(tol,4));
-        p_k1_denomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,2), mu_temp.head(2), Cor_mat_temp.block(0,0,2,2));
-        p_k1_denomi = std::max(p_k1_denomi, pow(tol,2));
-        p(k1) = p_k1_nomi/p_k1_denomi;
-        
-      }
-      else
-      {
-        // last iteration, if uneven dimension
-        
-        // calculate next probability
-        p_k1_nomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,3), mu_temp.head(3), Cor_mat_temp.block(0,0,3,3));
-        p_k1_nomi = std::max(p_k1_nomi, pow(tol,3));
-        p_k1_denomi = TVBS_pmvnorm_old_cpp(x_temp.segment((2*k1+1)-1,2), mu_temp.head(2), Cor_mat_temp.block(0,0,2,2));
-        p_k1_denomi = std::max(p_k1_denomi, pow(tol,2));
-        
-        
-        p(k1) = p_k1_nomi/p_k1_denomi;
-        
-      }
-      
-    }
-    
-    
-    if(log_out == 0)
-    {
-      p_out(0) = p.prod();
-    }
-    else
-    {
-      p_out(0) = p.array().log().sum();
-    }
-    
-    
-  }
-  
-  double p_final = p_out(0);
-  
-  return p_final;
-}
 

@@ -29,6 +29,7 @@
 summary.Rprobit_cl <- function(object, denormalise = TRUE, ...) {
 
   LC_model = FALSE
+  StSp_model = FALSE
   ### build model parameters
   if (!is.null(object$mod$num_class)){
     LC_model = TRUE
@@ -38,7 +39,7 @@ summary.Rprobit_cl <- function(object, denormalise = TRUE, ...) {
     for (j in 1:num_class){
         param_one <- mod$lthb + mod$lthO + mod$lthL 
         ind_j <- (j-1)*param_one+c(1:param_one)
-        par_all[[j]] <- build_par_from_mod(object$theta[ind_j], mod, variances = object$vv[ind_j,ind_j])
+        par_all[[j]] <- build_par_from_mod(object$theta[ind_j], mod, variances = object$vv[ind_j,ind_j,drop=FALSE])
     }
     pi_eta <- c(0,object$theta[num_class*param_one + c(1:(num_class-1))])
     pi <- exp(pi_eta)/sum(exp(pi_eta))
@@ -118,10 +119,54 @@ summary.Rprobit_cl <- function(object, denormalise = TRUE, ...) {
   }
 
   if (object$mod$ordered) {
-    sdall <- sqrt(diag(object$vv))
-    sdtauk <- sdall[(length(sdall) - length(par$tauk) + 1):length(sdall)]
-    sdtauk[-1] <- sdtauk[-1] * (diff(par$tauk)^2)
-    par$tauk_sd <- sdtauk
+    # variance for treshholds
+    ind_thresh <- (object$mod$lthb +object$mod$lthO + object$mod$lthL + c(1:object$mod$alt-1))
+    l_it <- length(ind_thresh)
+    Vthresdh <- object$vv[ind_thresh,ind_thresh]
+    
+    dtauk <- diff(par$tauk)
+    L <- matrix(0,l_it,l_it)
+    L[,1] <- 1
+    for (j in 2:l_it){
+      L[j:l_it,j] <- dtauk[j-1]
+    }
+    par$tauk_sd <- sqrt(diag( L %*% Vthresdh %*% t(L)))
+    
+    # for state space models include matrices. 
+    if (inherits(object$mod,"mod_StSp_cl")){
+      n = object$mod$dim_state
+      s = dim(par$Sigma)[1]
+      ind_StSp <- (object$mod$lthb +object$mod$lthO + object$mod$lthL + object$mod$alt-1 + c(1:(2*s*n)))
+
+      param <- object$theta[ind_StSp]
+      sd_param <- sqrt(diag(object$vv[ind_StSp,ind_StSp]))
+      stsp <- param_to_system_R(param, s=s, n=n, grad_bool=0, stationary = FALSE)
+      sd_stsp <- param_to_system_R(sd_param, s=s, n=n, grad_bool=1, stationary = FALSE)
+      
+      # add to output 
+      par$StSp <- stsp
+      par$sd_StSp <- sd_stsp
+      
+      StSp_model = TRUE
+    }
+    # for AR models include matrices
+    # for state space models include matrices. 
+    if (inherits(object$mod,"mod_AR_cl")){
+      n = object$mod$lag_length
+      ind_StSp <- (object$mod$lthb +object$mod$lthO + object$mod$lthL + object$mod$alt-1 + c(1:n))
+      
+      param <- object$theta[ind_StSp]
+      sd_param <- sqrt(diag(object$vv[ind_StSp,ind_StSp]))
+      stsp <- param_to_system_AR_R(param, lag=n, grad_bool=0, stationary = FALSE)
+      sd_stsp <- param_to_system_AR_R(sd_param, lag=n, grad_bool=1, stationary = FALSE)
+      
+      # add to output 
+      par$StSp <- stsp
+      par$sd_StSp <- sd_stsp
+      
+      StSp_model = TRUE
+    }
+    
   }
 
   ### build output
@@ -136,7 +181,9 @@ summary.Rprobit_cl <- function(object, denormalise = TRUE, ...) {
       "ordered" = object$mod$ordered,
       "par" = par,
       "latent_class_model" = LC_model,
+      "state_space_model" = StSp_model,
       "prediction_summary" = predict_Rprobit(object),
+      "predictions" = predict_Rprobit(object,all_pred =TRUE),
       "ll" = object$ll
     ),
     class = c("summary.Rprobit_cl", "list")
@@ -219,21 +266,6 @@ print.summary.Rprobit_cl <- function(x, ...) {
         col_names = x$alt_names
       )
     }
-    if (x$ordered) {
-      Tp <- dim(x$par$Sigma)[1]
-      print_est_sd(
-        est_sd = cbind(x$par$Sigma, if(is.null(x$par$Sigma_sd)) x$par$Sigma * NA else x$par$Sigma_sd),
-        row_names = 1:Tp,
-        col_names = 1:Tp
-      )
-      ### for ordered alternatives: print interval limits
-      writeLines("")
-      print_est_sd(
-        est_sd = matrix(c(x$par$tauk, x$par$tauk_sd), nrow = 1),
-        row_names = "tauk",
-        col_names = 1:length(x$par$tauk)
-      )
-    }
   } else {
     par_all <- x$par[[1]]
     b_mat <- par_all[[1]]$b
@@ -268,6 +300,49 @@ print.summary.Rprobit_cl <- function(x, ...) {
       row_names = x$alt_names,
       col_names = x$alt_names
     )
+  }
+  
+  if (x$ordered) {
+    Tp <- dim(x$par$Sigma)[1]
+    print_est_sd(
+      est_sd = cbind(x$par$Sigma, if(is.null(x$par$Sigma_sd)) x$par$Sigma * NA else x$par$Sigma_sd),
+      row_names = 1:Tp,
+      col_names = 1:Tp
+    )
+    ### for ordered alternatives: print interval limits
+    writeLines("")
+    print_est_sd(
+      est_sd = matrix(c(x$par$tauk, x$par$tauk_sd), nrow = 1),
+      row_names = "tauk",
+      col_names = 1:length(x$par$tauk)
+    )
+    
+    if (x$state_space_model){
+      n = dim(x$par$StSp$A)[1]
+      s = dim(x$par$StSp$C)[1]
+      
+      writeLines("State Space Model for Error Autocorrelation")
+      writeLines("A =")      
+      print_est_sd(
+        est_sd = cbind(x$par$StSp$A, if(is.null(x$par$sd_StSp$A)) x$par$StSp$A * NA else x$par$sd_StSp$A),
+        row_names = 1:n,
+        col_names = 1:n
+      )
+      writeLines("K =")      
+      print_est_sd(
+        est_sd = cbind(x$par$StSp$K, if(is.null(x$par$sd_StSp$K)) x$par$StSp$K * NA else x$par$sd_StSp$K),
+        row_names = 1:n,
+        col_names = 1:s
+      )
+      writeLines("C =")      
+      print_est_sd(
+        est_sd = cbind(x$par$StSp$C, if(is.null(x$par$sd_StSp$C)) x$par$StSp$C * NA else x$par$sd_StSp$C),
+        row_names = 1:s,
+        col_names = 1:n
+      )
+    }
+      
+    
   }
   ### Prediction information
   writeLines("")

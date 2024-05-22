@@ -5,13 +5,14 @@ author: Dietmar Bauer, Manuel Batram, Sebastian Büscher, Lennart Oelschläger
 date: '`r Sys.Date()`'
 vignette: >
   %\VignetteIndexEntry{Model Fitting}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
 bibliography: ref.bib
 link-citations: yes
 editor_options: 
   markdown: 
     wrap: 72
+  chunk_output_type: inline
 ---
 
 ```{r, include = FALSE}
@@ -103,9 +104,11 @@ train_mod$mod$fb = as.matrix(c(-0.06,0,0,0),ncol=1)
 
 # initialise with MNL results
 train_mod$theta <- -c(as.numeric(Train.mod$coefficients[2:4]),1)
+train_mod$theta_0 <- train_mod$theta
 
-train_fit       <- fit_Rprobit(Rprobit_obj = train_mod,init_method = "theta", 
-                               control_nlm = list(approx_method = "SJ",probit = FALSE,hess = 0), cml_pair_type = 0)
+
+train_fit       <- fit_Rprobit(Rprobit_obj = train_mod,init_method = "random", 
+                               control_nlm = list(approx_method = "SJ",probit = FALSE,hess = 0), cml_pair_type = 1)
 summary(train_fit)
 ```
 

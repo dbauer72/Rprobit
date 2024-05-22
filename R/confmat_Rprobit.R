@@ -80,7 +80,8 @@ confmat_Rprobit <- function(Rprobit_obj, data_new = NULL){
   ### calculate the predicted choices
   pred_choices <- numeric(0)
   for (j in 1:dim(prediction_probs)[1]) {
-    pred_choices <- c(pred_choices, which(prediction_probs[j, ] == max(prediction_probs[j, ])))
+    max_prob <-  which(prediction_probs[j, ] == max(prediction_probs[j, ]))
+    pred_choices <- c(pred_choices, max_prob[1])
   }
   TT <- table(choices,pred_choices)
   colnames(TT) <- Rprobit_obj$data_raw$alt_names[as.numeric(colnames(TT))]
