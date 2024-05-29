@@ -1,7 +1,7 @@
 #include <Rcpp.h>
 #include <RcppEigen.h>
 #include <cmath>
-#include <omp.h>
+//#include <omp.h>
 
 #include "SJ_vdb.h"
 #include "TVBS.h"

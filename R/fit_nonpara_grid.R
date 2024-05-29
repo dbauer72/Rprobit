@@ -26,6 +26,8 @@
 fit_nonpara_grid <- function(data_tr, mod, control, cml_pair_type  = 1) {
 
   probs <- choice_probs_nonpara(data_tr, mod, control, cml_pair_type)
+  weights <- probs[,dim(probs)[2]]
+  probs <- probs[,-dim(probs)[2]]
   #grid_points <- mod$params 
   
   # initialize 
@@ -35,37 +37,37 @@ fit_nonpara_grid <- function(data_tr, mod, control, cml_pair_type  = 1) {
   theta <- pi
   
   # evaluate negative log-likelihood of non-parametric model  
-  eval_ll_grad <- function(pi,probs){
+  eval_ll_grad <- function(pi,probs,weights){
     tol = 0.000000001
     K <- dim(probs)[2]
     N <- dim(probs)[1]
-  
+    
     # criterion function 
     pri = probs %*% pi
     for (j in 1:N){
       probs[j,] <- -probs[j,]/max(pri[j],tol)
     }
-    grad <- apply(probs,2,sum)
-  
+    grad <- weights %*% probs #apply(probs,2,sum)
+    
     return (grad)
   }
-
+  
   # evaluate negative log-likelihood of non-parametric model  
-  eval_ll <- function(pi,probs){
+  eval_ll <- function(pi,probs,weights){
     tol = 0.000000001
     K <- dim(probs)[2]
     N <- dim(probs)[1]
-  
+    
     # criterion function 
     pri = probs %*% pi
-    LN <- (-1)*sum( log(pri))
-  
+    LN <- -1 * (weights %*% log(pri))                    #(-1)*sum( log(pri))
+    
     # gradient 
     for (j in 1:N){
       probs[j,] <- -probs[j,]/max(pri[j],tol)
     }
-    grad <- apply(probs,2,sum)
-  
+    grad <- weights %*% probs #apply(probs,2,sum)
+    
     return( list( "objective" = LN,"gradient"  = grad ))
   }
   
@@ -76,7 +78,7 @@ fit_nonpara_grid <- function(data_tr, mod, control, cml_pair_type  = 1) {
     return( list( "constraints"=constr, "jacobian"=grad ) )
   }
   
-  eval_ll_x <- function(x){ eval_ll(x,probs=probs)}
+  eval_ll_x <- function(x){ eval_ll(x,probs=probs, weights = weights)}
   local_opts <- list( "algorithm" = "NLOPT_LD_MMA", "xtol_rel" = 1.0e-7 )  
   opts <- list( "algorithm" = "NLOPT_LD_AUGLAG", "xtol_rel" = 1.0e-7,  "maxeval" = 10000, "local_opts" = local_opts )
   
@@ -85,5 +87,5 @@ fit_nonpara_grid <- function(data_tr, mod, control, cml_pair_type  = 1) {
   # provide return values 
   pi <- out_opt$solution 
   sprob <- probs %*%  out_opt$solution
-  return (list(lprob = sprob, pi = pi))
+  return (list(lprob = sprob, pi = pi, weights = weights))
 } 

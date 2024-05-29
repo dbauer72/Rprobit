@@ -22,6 +22,8 @@ init_LC_Rprobit <- function(Rprobit_obj,mod,control) {
   
   #browser()
   Rpro <- Rprobit_obj$clone(deep = TRUE)
+  modc <- mod_cl$new(Hb = mod$Hb,fb = mod$fb, HO = mod$HO, fO = mod$fO, HL = mod$HL, fL = mod$fL, ordered = FALSE )
+  Rpro$mod <- modc
   Rp <- fit_Rprobit(Rpro, init_method = "theta")
   Rprobit_o = Rprobit_obj$clone(deep = TRUE)
   data_tr = Rprobit_o$data$clone()
@@ -49,9 +51,12 @@ init_LC_Rprobit <- function(Rprobit_obj,mod,control) {
   
   # for each cluster re-estimate the model 
   theta = c()
+
+  
   for (k in 1:K){
     ind = which(km$cluster ==k)
     Rp_comp <- Rp$clone(deep = TRUE)
+    Rp_comp$mod <- modc
     data_sub <- Rprobit_obj$data$clone(deep = TRUE)
     data_sub$set_data(Rprobit_obj$data$data[ind])
     Rp_comp$data = data_sub

@@ -42,7 +42,7 @@ fit_nonpara_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm
   # helper functions needed in the algorithm 
   
   # evaluate negative log-likelihood of non-parametric model  
-  eval_ll_grad <- function(pi,probs){
+  eval_ll_grad <- function(pi,probs,weights){
     tol = 0.000000001
     K <- dim(probs)[2]
     N <- dim(probs)[1]
@@ -52,26 +52,26 @@ fit_nonpara_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm
     for (j in 1:N){
       probs[j,] <- -probs[j,]/max(pri[j],tol)
     }
-    grad <- apply(probs,2,sum)
+    grad <- weights %*% probs #apply(probs,2,sum)
     
     return (grad)
   }
   
   # evaluate negative log-likelihood of non-parametric model  
-  eval_ll <- function(pi,probs){
+  eval_ll <- function(pi,probs,weights){
     tol = 0.000000001
     K <- dim(probs)[2]
     N <- dim(probs)[1]
 
     # criterion function 
     pri = probs %*% pi
-    LN <- (-1)*sum( log(pri))
+    LN <- -1 * (weights %*% log(pri))                    #(-1)*sum( log(pri))
     
     # gradient 
     for (j in 1:N){
       probs[j,] <- -probs[j,]/max(pri[j],tol)
     }
-    grad <- apply(probs,2,sum)
+    grad <- weights %*% probs #apply(probs,2,sum)
 
     return( list( "objective" = LN,"gradient"  = grad ))
   }
@@ -259,6 +259,9 @@ fit_nonpara_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm
   
   ### calculate probabilities once. 
   probs <- choice_probs_nonpara(data_tr, Rprobit_o$mod, Rprobit_o$control, cml_pair_type)
+  weights <- probs[,dim(probs)[2]]
+  probs <- probs[,-dim(probs)[2]]
+ 
   grid_points <- Rprobit_o$mod$params 
 
   if (init_method == "random"){
@@ -280,7 +283,7 @@ fit_nonpara_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm
     return( list( "constraints"=constr, "jacobian"=grad ) )
   }
   
-  eval_ll_x <- function(x){ eval_ll(x,probs=probs)}
+  eval_ll_x <- function(x){ eval_ll(x,probs=probs,weights =weights)}
   #eval_ll_grad_x <- function(x){ eval_ll_grad(x,probs=probs)}
   local_opts <- list( "algorithm" = "NLOPT_LD_MMA", "xtol_rel" = 1.0e-7 )  
   opts <- list( "algorithm" = "NLOPT_LD_AUGLAG", "xtol_rel" = 1.0e-7,  "maxeval" = 10000, "local_opts" = local_opts )
@@ -359,7 +362,8 @@ fit_nonpara_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm
       Rprobit_o$mod$set_grid_points(grid_new)
       n_gr_new <- dim(grid_new)[2]
       probs_new <- choice_probs_nonpara(data_tr, Rprobit_o$mod, Rprobit_o$control, cml_pair_type)
-
+      
+      probs_new <- probs_new[,-dim(probs_new)[2]]
       # calculate dlam
       Phat <- probs %*% theta
       dlam <- matrix(0,n_gr_new,1)
@@ -381,7 +385,7 @@ fit_nonpara_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm
       theta <- theta/sum(theta)
 
       # recalibrate the pi's
-      eval_ll_x <- function(x){ eval_ll(x,probs=probs)}
+      eval_ll_x <- function(x){ eval_ll(x,probs=probs,weights=weights)}
     }
   }
   out_opt <- nloptr::nloptr(x0=theta,eval_f=eval_ll_x,lb = rep(0,length(theta)),eval_g_eq=eval_g_eq, opts = opts)
@@ -390,7 +394,7 @@ fit_nonpara_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm
   Rprobit_o$mod$params <- grid_points 
   Rprobit_o$theta <- out_opt$solution
     
-  neg_ll_fit <- eval_ll(Rprobit_o$theta,probs = probs)
+  neg_ll_fit <- eval_ll(Rprobit_o$theta,probs = probs,weights=weights)
   Rprobit_o$ll <- (-1) * neg_ll_fit$objective
 
   Rprobit_o$fit <- approx_method

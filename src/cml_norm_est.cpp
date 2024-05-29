@@ -8,7 +8,7 @@
 // the X-part for the actual choice.
 
 #include <RcppEigen.h>
-#include <omp.h>
+//#include <omp.h>
 
 using namespace Rcpp;
 

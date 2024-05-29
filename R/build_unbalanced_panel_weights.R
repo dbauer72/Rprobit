@@ -9,7 +9,7 @@ build_unbalanced_panel_weights <- function(Rprobit_obj) {
 
   ### check if data is actually unbalanced panel data
   if (length(unique(Tp)) == 1) {
-    print("Data resembles a balanced panel")
+    ##print("Data resembles a balanced panel")
 
     ### get number of pairs per individual
     if (!is.null(Rprobit_obj$control$pairs_list)) {
@@ -34,8 +34,8 @@ build_unbalanced_panel_weights <- function(Rprobit_obj) {
       C_s <- Tp[1]
     }
 
-    ### return weight equal to one
-    out <- data.frame(n_obs = Tp[1], weights = 1, n_ind = Rprobit_obj$mod$N, n_pairs = C_s)
+    ### return weight such that each choice enters with weight one: 
+    out <- data.frame(n_obs = Tp[1], weights = Tp[1]/(2*C_s), n_ind = Rprobit_obj$data$N, n_pairs = C_s)
   } else {
     ### if data has unbalanced panel structure
 
@@ -74,15 +74,20 @@ build_unbalanced_panel_weights <- function(Rprobit_obj) {
       } else {
         C_s[i_tp] <- s[i_tp]
       }
+      
+      ### change, if s[i_tp] equals 1 -> no pairs possible. Set to 1 to make computations below possible.
+      if (s[i_tp] == 1){
+        C_s[i_tp] <- 1
+      }
     }
 
 
     ### determine which weighting method should be used
-    method <- "BB"
-    if (!is.null(Rprobit_obj$control$control_weights$unbalanced_panel_weights$method)) {
-      method <- Rprobit_obj$control$control_weights$unbalanced_panel_weights$method
-    }
-
+    if (!is.list(Rprobit_obj$control$control_weights$unbalanced_panel_weights)){
+      Rprobit_obj$control$control_weights$unbalanced_panel_weights <- list(method = "JL",rho=0) 
+    } 
+    method <- Rprobit_obj$control$control_weights$unbalanced_panel_weights$method
+    
     ### apply weighting method
     if (method %in% c("JoeLee", "JL")) {
       rho <- 0.5
@@ -92,6 +97,10 @@ build_unbalanced_panel_weights <- function(Rprobit_obj) {
 
       ### calculate JoeLee weights
       w_s <- 1 / ((s - 1) * (1 + (s - 1) * rho))
+      
+      ### correct for obs with only one choice occasion 
+      ind <- which(s==1)
+      w_s[ind] <- 1
       sum_weight <- sum(w_s * C_s * N_s)
       target_weight <- sum(s * N_s)
       w_s_scaled <- w_s / sum_weight * target_weight

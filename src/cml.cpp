@@ -8,7 +8,7 @@
 // the X-part for the actual choice.
 
 #include <RcppEigen.h>
-#include <omp.h>
+//#include <omp.h>
 
 using namespace Rcpp;
 
@@ -3182,20 +3182,20 @@ NumericVector ll_macml_LC(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List
      // reweight by Tp/sum of weights*2. 
      
      // sum of weights 
-     double sum_of_weights = 0;
-     
-     for (int js=0;js<pairs_n.rows();js++){
-       sum_of_weights += pairs_n(js,2);
-     }
-     
-     sum_of_weights = sum_of_weights * 2; 
-     if (sum_of_weights == 0){ 
-       sum_of_weights = 1.0;
-     }
-     
-     for (int js=0;js<pairs_n.rows();js++){
-       pairs_n(js,2) = pairs_n(js,2)*Tp_n / sum_of_weights;
-     }
+     //double sum_of_weights = 0;
+     //
+     //for (int js=0;js<pairs_n.rows();js++){
+     // sum_of_weights += pairs_n(js,2);
+     //}
+     //
+     //sum_of_weights = sum_of_weights * 2; 
+     //if (sum_of_weights == 0){ 
+     // sum_of_weights = 1.0;
+     //}
+     //
+     //for (int js=0;js<pairs_n.rows();js++){
+     //   pairs_n(js,2) = pairs_n(js,2)*Tp_n / sum_of_weights;
+     //}
      
      //............................................................//
      // deal with observations, where only one choice is observed  //
@@ -3477,7 +3477,8 @@ Eigen::MatrixXd choice_probs_nonpara(Rcpp::List data_obj, Rcpp::List mod, Rcpp::
      }
    }
    
-   Eigen::MatrixXd out(number_choices,params.cols());
+   int colout = params.cols()+1; 
+   Eigen::MatrixXd out(number_choices,colout);
    out.setZero();
    
    //............................................................//
@@ -3574,6 +3575,7 @@ Eigen::MatrixXd choice_probs_nonpara(Rcpp::List data_obj, Rcpp::List mod, Rcpp::
            X = X_n[jp];
            
            out(cur_lp,jg)  = std::exp(cal_choice_probs_1_nograd(X,alt,y1,b.col(jg), Sigma.block(jg*alt,0,alt,alt), Omega.block(jg*lRE,0,lRE,lRE), approx_method));
+           out(cur_lp,colout-1) = 1.0;
            cur_lp += 1;
          } // end probabilities calculation
        }
@@ -3593,6 +3595,9 @@ Eigen::MatrixXd choice_probs_nonpara(Rcpp::List data_obj, Rcpp::List mod, Rcpp::
              X2 = X_n[jpb];
              
              out(cur_lp,jg)  = std::exp(cal_choice_probs_2_nograd(X1, X2, y1, y2, b.col(jg), Sigma.block(jg*alt,0,alt,alt), Omega.block(jg*lRE,0,lRE,lRE), approx_method));
+             out(cur_lp,colout-1) = 1.0/((double)Tp_n-1.0);
+             
+             //Rcout << cur_lp << colout << "out" << out(cur_lp,colout-1) << std::endl; 
              cur_lp += 1;
            } // end jpb loop 
          } // end probabilities calculation
@@ -3612,6 +3617,7 @@ Eigen::MatrixXd choice_probs_nonpara(Rcpp::List data_obj, Rcpp::List mod, Rcpp::
            X2 = X_n[jpa];
            
            out(cur_lp,jg)  = std::exp(cal_choice_probs_2_nograd(X1, X2, y1, y2, b.col(jg), Sigma.block(jg*alt,0,alt,alt), Omega.block(jg*lRE,0,lRE,lRE), approx_method));
+           out(cur_lp,colout-1) = (double)Tp_n/(2.0*((double)Tp_n-1.0));
            cur_lp += 1;
          } // end probabilities calculation
        }

@@ -28,7 +28,7 @@ CML_weights <- function(Rprobit_obj, control_weights = NULL) {
   } else {
 
     unbalanced_panel_weights <- Rprobit_obj$data_raw$Tp/max(Rprobit_obj$data_raw$Tp)
-    
+    control_weights$unbalanced_panel_weights <- unbalanced_panel_weights
     ### build initial pair structure
     cml_pair_type <- NULL
     if (!is.null(control_weights$cml_pair_type)) {
@@ -54,7 +54,7 @@ CML_weights <- function(Rprobit_obj, control_weights = NULL) {
         }
       }
 
-      if (use_panel_weights) {
+      #if (use_panel_weights) {
         panel_group_weights <- build_unbalanced_panel_weights(Rprobit_obj = Rprobit_obj)
 
         ### save estimated theta parameter, if applicable
@@ -64,10 +64,10 @@ CML_weights <- function(Rprobit_obj, control_weights = NULL) {
 
         
         for (i_weight in 1:nrow(panel_group_weights)) {
-          unbalanced_panel_weights[Rprobit_obj$mod$Tp == panel_group_weights$n_obs[i_weight]] <- panel_group_weights$weights[i_weight]
+          unbalanced_panel_weights[Rprobit_obj$data$Tp == panel_group_weights$n_obs[i_weight]] <- panel_group_weights$weights[i_weight]
 
         }
-      }
+      #}
     }
 
 

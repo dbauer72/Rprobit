@@ -29,6 +29,24 @@ fit_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL,
   
   Rprobit_o <- Rprobit_obj$clone(deep=TRUE)
   mod_orig <- Rprobit_o$mod$clone(deep=TRUE)
+  
+  # check if LC or non-parametric is wanted. 
+  if (inherits(mod_orig,"mod_latclass_cl")){
+    Rprobit_o <- fit_LC_Rprobit(Rprobit_o, init_method = init_method, control_nlm = control_nlm, cml_pair_type = cml_pair_type)
+    return(Rprobit_o)
+  }
+
+  if (inherits(mod_orig,"mod_nonpara_cl")){
+    Rprobit_o <- fit_nonpara_Rprobit(Rprobit_o, init_method = init_method, control_nlm = control_nlm, cml_pair_type = cml_pair_type)
+    return(Rprobit_o)
+  }
+
+  if (inherits(mod_orig,"mod_nonpara_splines_cl")){
+    Rprobit_o <- fit_nonpara_splines_Rprobit(Rprobit_o, init_method = init_method, control_nlm = control_nlm, cml_pair_type = cml_pair_type)
+    return(Rprobit_o)
+  }
+
+    
   data_raw_orig = Rprobit_o$data_raw$clone(deep=TRUE)
   ### check if there are random effects. If not, no need to go to complicated calculations, remove panel structure.
   if ((Rprobit_o$mod$ordered == FALSE)&&(is.null(Rprobit_o$re)==TRUE)){

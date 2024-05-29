@@ -49,7 +49,7 @@ fit_nonpara_splines_Rprobit <- function(Rprobit_obj, init_method = "random", con
   }
   
   # evaluate negative log-likelihood of non-parametric model  
-  eval_ll <- function(theta,probs,spline_basis){
+  eval_ll <- function(theta,probs,spline_basis, weights){
     
     K <- dim(spline_basis)[1]
     N <- dim(probs)[1]
@@ -63,7 +63,7 @@ fit_nonpara_splines_Rprobit <- function(Rprobit_obj, init_method = "random", con
 
     # criterion function 
     pri = probs %*% t(pi_est)
-    LN <- (-1)*sum( log(pri))
+    LN <-  -1 * (weights %*% log(pri))  
     if (is.infinite(LN)){
       LN = 100000
     }
@@ -270,6 +270,9 @@ fit_nonpara_splines_Rprobit <- function(Rprobit_obj, init_method = "random", con
   time_1 <- Sys.time()
   ### calculate probabilities once. 
   probs <- choice_probs_nonpara(data_tr, Rprobit_o$mod, Rprobit_o$control, cml_pair_type)
+  weights <- probs[,dim(probs)[2]]
+  probs <- probs[,-dim(probs)[2]]
+  
   spline_basis <- cal_spline_basis(Rprobit_o$mod$params,Rprobit_o$mod$knots)
     
     
@@ -277,6 +280,7 @@ fit_nonpara_splines_Rprobit <- function(Rprobit_obj, init_method = "random", con
                       p                  = Rprobit_o$theta,
                       probs              = probs,
                       spline_basis       = spline_basis,
+                      weights            = weights,
                       hessian            = TRUE, 
                       print.level        = min(Rprobit_o$control$control_nlm$print.level, 2),
                       ndigit             = Rprobit_o$control$control_nlm$ndigit,
@@ -292,7 +296,7 @@ fit_nonpara_splines_Rprobit <- function(Rprobit_obj, init_method = "random", con
   # calculate result at estimate
 
   Rprobit_o$theta <- out_opt$estimate
-  neg_ll_fit <- eval_ll(Rprobit_o$theta,probs = probs,spline_basis = spline_basis)
+  neg_ll_fit <- eval_ll(Rprobit_o$theta,probs = probs,spline_basis = spline_basis, weights = weigths)
   Rprobit_o$ll <- (-1) * neg_ll_fit
 
   Rprobit_o$fit <- approx_method

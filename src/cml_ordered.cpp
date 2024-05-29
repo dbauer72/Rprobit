@@ -10,7 +10,7 @@
 #include <Rcpp.h>
 #include <RcppEigen.h>
 #include <cmath>
-#include <omp.h>
+//#include <omp.h>
 
 using namespace Rcpp;
 

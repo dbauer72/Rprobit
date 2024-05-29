@@ -164,7 +164,7 @@ fit_nonpara_Rprobit_multi <- function(Rprobit_obj, init_method = "random", contr
     mod_new$params <- params
     
     out <- fit_nonpara_grid(data_tr, mod_new, control, cml_pair_type  = cml_pair_type)
-    cr <- -sum(log(out$lprob))
+    cr <- - (weights %*% log(out$lprob))
     
     return(cr)
   }
@@ -329,39 +329,6 @@ fit_nonpara_Rprobit_multi <- function(Rprobit_obj, init_method = "random", contr
   
   time_1 <- Sys.time()
   nlm_out         <- optimizer(ll_function = ll_function, theta, Rprobit_o = Rprobit_o, data = Rprobit_o$data, cml_pair_type)
-  
-  #out <- fit_nonpara_grid(data_tr, Rprobit_o$mod, Rprobit_o$control, cml_pair_type  = cml_pair_type)
-  
-  # split_points is a helper function, that introduces new points to the grid. 
-  #split_points <- function(grid,lthb,lthO){
-  #  M <- dim(grid)[2]
-  #  
-  #  grid_new <- cbind(grid,grid)
-  #  
-#
-  #  for (j in 1:M){
-  #    if (lthO>0){ # there are parameters for Omega
-  #      sd <- norm(grid[lthb+(1:lthO),j])
-  #    } else {
-  #      sd <- -lthO
-  #    }
-  #    grid_new[1:lthb,j] <- grid[1:lthb,j]-sd # move point one standard deviation to the left
-  #    grid_new[1:lthb,M+j] <- grid[1:lthb,j]+sd # move point one standard deviation to the right
-  #    if (lthO>0){
-  #      grid_new[lthb+(1:lthO),j] <- grid[lthb+(1:lthO),j]/2 # cut standard deviation into half. 
-  #      grid_new[lthb+(1:lthO),M+j] <- grid[lthb+(1:lthO),j]/2 # cut standard deviation into half. 
-  #    }
-  #  }
-  #  return (grid_new)
-  #}
-  
-  #lthb <- Rprobit_o$mod$lthb
-  #lthO <- Rprobit_o$mod$lthO
-  
-  # make sure, grid_points is a matrix 
-  #if (inherits(grid_points,"matrix")==FALSE){
-  #  grid_points <- matrix(grid_points,nrow=1)
-  #}
   
   time_2          <- Sys.time()
   
