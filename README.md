@@ -6,6 +6,12 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
+## Disclaimer 
+
+The package is in early stages of development. It may contain bugs and 
+broken functionality. The software comes with no warranties whatsoever. 
+
+## Introduction 
 {Rprobit} implements the specification and estimation of multinomial
 probit models that are used in the context of discrete choice data sets.
 Thereby individuals (named deciders) decide between a finite number of
