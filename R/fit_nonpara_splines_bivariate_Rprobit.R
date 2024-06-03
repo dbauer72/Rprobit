@@ -1,35 +1,35 @@
 #' Fit a Probit Model using non-parametric mixing distribution based on a fixed grid and the spline idea of Train (2016).
-#' 
-#' @description 
-#' This function fits a mixed probit model using a non-parametric mixing with fixed grid and estimated mixing 
-#' probabilities.  
+#'
+#' @description
+#' This function fits a mixed probit model using a non-parametric mixing with fixed grid and estimated mixing
+#' probabilities.
 #' DOES NOT USE PARALLELIZATION!!!
-#' 
-#' @param Rprobit_obj 
+#'
+#' @param Rprobit_obj
 #' An \code{\link{Rprobit_cl}} object.
-#' @param init_method 
-#' A \code{character}, setting the method for initialization of the likelihood 
+#' @param init_method
+#' A \code{character}, setting the method for initialization of the likelihood
 #' optimization.
-#' Can be one of 
-#' * \code{"random"} (default) 
+#' Can be one of
+#' * \code{"random"} (default)
 #' * or \code{"subset"}.
-#' @param control_nlm 
-#' Optionally a named \code{list} of control parameters passed on to 
+#' @param control_nlm
+#' Optionally a named \code{list} of control parameters passed on to
 #' \link[stats]{nlm}.
 #' By default, \code{control_nlm = NULL}.
-#' 
-#' @param cml_pair_type 
-#' An integer. 
+#'
+#' @param cml_pair_type
+#' An integer.
 #' cml_pair_type = 0 (full pairwise), = 1 (adjacent pairwise looped), = -1 (single choices)
-#' By default, \code{cml_pair_type = 1}. 
-#' 
-#' @return 
+#' By default, \code{cml_pair_type = 1}.
+#'
+#' @return
 #' A \code{\link{Rprobit_cl}} object.
-#' 
+#'
 #' @export
 
 fit_nonpara_splines_bivariate_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm = NULL, cml_pair_type = 1) {
-  
+
   Rprobit_o <- Rprobit_obj$clone(deep=TRUE)
   mod_orig <- Rprobit_o$mod$clone(deep=TRUE)
   data_raw_orig = Rprobit_o$data_raw$clone(deep=TRUE)
@@ -37,42 +37,42 @@ fit_nonpara_splines_bivariate_Rprobit <- function(Rprobit_obj, init_method = "ra
   #####################################################
   ## set up helper functions for optimization.    #####
   #####################################################
-  # helper functions needed in the algorithm 
-  
+  # helper functions needed in the algorithm
+
   Xplus3 <- function(x){
-    
+
     xp3 <- x*0
     for (j in 1:length(x)){
       xp3[j] = (max(x[j],0))^3
     }
     return (xp3)
   }
-  
-  
-  # evaluate negative log-likelihood of non-parametric model  
+
+
+  # evaluate negative log-likelihood of non-parametric model
   eval_ll <- function(theta,probs,spline_basis,weights){
-    
+
     Ksq <- dim(spline_basis)[1]
     N <- dim(probs)[1]
 
     # regularization to avoid overly large or small values
     spline_out <- theta %*% spline_basis
-    
-    
+
+
     # calculate conditional distribution
     pi_est<- exp(spline_out)/(1+exp(spline_out))^2
     pi_est <- pi_est/sum(pi_est)
 
-    # criterion function 
+    # criterion function
     pri = probs %*% t(pi_est)
-    LN <-  -1 * (weights %*% log(pri))  
+    LN <-  -1 * (weights %*% log(pri))
     if (is.infinite(LN)){
       LN = 100000
     }
     if (is.na(LN)){
       LN = 100000
     }
-   
+
     return (LN)
   }
 
@@ -244,37 +244,37 @@ fit_nonpara_splines_bivariate_Rprobit <- function(Rprobit_obj, init_method = "ra
   }
 
 
-  ### TODO: update initialization 
+  ### TODO: update initialization
   ### only random initialization for now !! Rprobit_o$theta <- init_Rprobit(ll_function = ll_function, Rprobit_obj = Rprobit_o, init_method = init_method, data_tr = data_tr)
   ### check whether the dimension of theta matches the dimensions given in mod
   K <- Rprobit_o$mod$num_knots
-  tot_params <- K*K # bivariate splines use square number of functions 
-   
+  tot_params <- K*K # bivariate splines use square number of functions
+
   if (init_method == "random"){
     Rprobit_o$theta <- rnorm(tot_params,0,0.01)
-  } 
-  
+  }
+
   ### perform numerical optimization and save results
   Rprobit_o$control$hess <- FALSE
   if (print.level > 0) {
     print("Start optimisation...")
   }
   time_1 <- Sys.time()
-  ### calculate probabilities once. 
+  ### calculate probabilities once.
 
   probs <- choice_probs_nonpara(data_tr, Rprobit_o$mod, Rprobit_o$control, cml_pair_type)
   weights <- probs[,dim(probs)[2]]
   probs <- probs[,-dim(probs)[2]]
-  
+
   spline_basis <- cal_spline_basis(Rprobit_o$mod$params,Rprobit_o$mod$knots)
-    
-    
+
+
   out_opt <- stats::nlm(f              = eval_ll,
                       p                  = Rprobit_o$theta,
                       probs              = probs,
                       spline_basis       = spline_basis,
                       weights            = weights,
-                      hessian            = TRUE, 
+                      hessian            = TRUE,
                       print.level        = min(Rprobit_o$control$control_nlm$print.level, 2),
                       ndigit             = Rprobit_o$control$control_nlm$ndigit,
                       gradtol            = Rprobit_o$control$control_nlm$gradtol,
@@ -282,14 +282,14 @@ fit_nonpara_splines_bivariate_Rprobit <- function(Rprobit_obj, init_method = "ra
                       steptol            = Rprobit_o$control$control_nlm$steptol,
                       iterlim            = Rprobit_o$control$control_nlm$iterlim,
                       check.analyticals  = Rprobit_o$control$control_nlm$check.analyticals)
-    
-    
+
+
   time_2          <- Sys.time()
-    
+
   # calculate result at estimate
 
   Rprobit_o$theta <- out_opt$estimate
-  neg_ll_fit <- eval_ll(Rprobit_o$theta,probs = probs,spline_basis = spline_basis, weights = weigths)
+  neg_ll_fit <- eval_ll(Rprobit_o$theta,probs = probs, spline_basis = spline_basis, weights = weights)
   Rprobit_o$ll <- (-1) * neg_ll_fit
 
   Rprobit_o$fit <- approx_method

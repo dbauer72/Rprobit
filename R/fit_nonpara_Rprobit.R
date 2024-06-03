@@ -259,10 +259,15 @@ fit_nonpara_Rprobit <- function(Rprobit_obj, init_method = "random", control_nlm
   
   ### calculate probabilities once. 
   probs <- choice_probs_nonpara(data_tr, Rprobit_o$mod, Rprobit_o$control, cml_pair_type)
-  weights <- probs[,dim(probs)[2]]
-  probs <- probs[,-dim(probs)[2]]
+  grid_points <- Rprobit_o$mod$params
+  if (dim(probs)[2]==length(grid_points)){
+    weights <- probs[,1]*0 + 1 
+  } else {
+    weights <- probs[,dim(probs)[2]]
+    probs <- probs[,-dim(probs)[2]]
+  }
+  
  
-  grid_points <- Rprobit_o$mod$params 
 
   if (init_method == "random"){
     theta <- rnorm(tot_params,0,0.01)

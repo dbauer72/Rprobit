@@ -3392,7 +3392,6 @@ NumericVector ll_macml_LC(Eigen::VectorXd theta, Rcpp::List data_obj, Rcpp::List
 //' @export
 //'
 // [[Rcpp::export]]
-
 Eigen::MatrixXd choice_probs_nonpara(Rcpp::List data_obj, Rcpp::List mod, Rcpp::List control, int cml_pair_type)
 {
    
